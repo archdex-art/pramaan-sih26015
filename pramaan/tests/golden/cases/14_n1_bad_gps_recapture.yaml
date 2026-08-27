@@ -1,0 +1,31 @@
+# Metadata integrity 0.30: manual pin-drop with no EXIF and a 90 m accuracy
+# figure. The actionable instruction is to re-capture the geotag, not to doubt
+# the work.
+claim_id: GOLD-14-BAD-GPS
+intervention_type: farm_pond
+gates:
+  detectability_passed: false
+  expected_footprint_m2: 625
+  pixel_area_m2: 900
+  escalated_to_cluster: true
+  scene_scale: close_up
+  terrain_plausibility: unknown
+quality:
+  metadata_integrity: 0.30
+  data_sufficiency: 0.55
+families:
+  - {family: terrain,   agreement:  0.0, reason: "uncertainty disk spans 3 terrain classes - no rule can be asserted"}
+  - {family: satellite, agreement:  0.0, available: false, reason: "per-structure assessment disabled by the detectability gate"}
+  - {family: temporal,  agreement:  0.0, available: false, reason: "no reliable AOI to sample"}
+  - {family: control,   agreement:  0.0, available: false, reason: "no site delta to compare"}
+  - {family: photo,     agreement:  0.4, reason: "excavation visible, water_present abstained at 0.38"}
+  - {family: context,   agreement:  0.0, reason: "rainfall neutral"}
+limitations:
+  - "coordinate provenance is manual_pin, rank 4 of 4"
+expect:
+  level: N1_inconclusive
+  label: INCONCLUSIVE
+  action: recapture_geotag
+  priority: 4
+  rule_path_contains: [N1_DEFAULT]
+  dissent_contains: ["Metadata integrity is 0.30"]

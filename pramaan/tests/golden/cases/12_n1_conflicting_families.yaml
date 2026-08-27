@@ -1,0 +1,28 @@
+# The case that motivated the net-support floor in levels.py. Two families agree
+# and two disagree; the weighted score is near zero. Counting only the agreeing
+# families would report this as L2 CORROBORATED, which would be the most
+# embarrassing verdict this engine could produce.
+claim_id: GOLD-12-CONFLICT
+intervention_type: check_dam
+gates:
+  detectability_passed: true
+  expected_footprint_m2: 3200
+  pixel_area_m2: 900
+  escalated_to_cluster: false
+  scene_scale: mid
+  terrain_plausibility: plausible
+quality:
+  metadata_integrity: 0.90
+  data_sufficiency: 0.75
+families:
+  - {family: terrain,   agreement:  1.0, reason: "order 3, ideal siting for a check dam"}
+  - {family: satellite, agreement: -1.0, reason: "no MNDWI change at site disk in either post season"}
+  - {family: temporal,  agreement:  1.0, reason: "rabi NDVI +0.08 in command buffer"}
+  - {family: control,   agreement: -1.0, reason: "controls show the same NDVI rise - no differential"}
+  - {family: photo,     agreement:  0.5, reason: "structure visible, water_present abstained at 0.42"}
+  - {family: context,   agreement: -0.8, reason: "rainfall 1.31x decadal mean - a wet year explains the NDVI rise"}
+expect:
+  level: N1_inconclusive
+  label: INCONCLUSIVE
+  rule_path_contains: [N1_DEFAULT, reason=conflicting_families]
+  action: confirm_next_cycle

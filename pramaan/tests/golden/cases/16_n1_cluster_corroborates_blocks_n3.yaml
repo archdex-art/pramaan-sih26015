@@ -1,0 +1,35 @@
+# Terrain says the siting is implausible, but the escalated cluster-scale
+# satellite evidence CORROBORATES the claim. Bad siting is not the same as
+# absent work, so N3_TERRAIN_PATH must not fire.
+claim_id: GOLD-16-CLUSTER-CORROBORATES
+intervention_type: farm_pond
+gates:
+  detectability_passed: false
+  expected_footprint_m2: 625
+  pixel_area_m2: 900
+  escalated_to_cluster: true
+  scene_scale: mid
+  terrain_plausibility: implausible
+quality:
+  metadata_integrity: 0.90
+  data_sufficiency: 0.75
+families:
+  - {family: terrain,   agreement: -1.0, reason: "order 0, dist-to-stream 310 m, flow acc 9 px - implausible siting"}
+  - {family: satellite, agreement:  0.9, reason: "cluster of 5 claims shows clear MNDWI increase", cluster_scale: true}
+  - {family: temporal,  agreement:  0.8, reason: "cluster persistence 1 to 4 months/yr", cluster_scale: true}
+  - {family: control,   agreement:  0.6, reason: "6 matched controls show no such change"}
+  - {family: photo,     agreement:  0.9, reason: "filled pond with standing water"}
+  - {family: context,   agreement:  0.5, reason: "rainfall normal"}
+alternatives:
+  - {description: "coordinates belong to a different pond in the same cluster", excluded: true, basis: "all 5 cluster members are within 400 m and all show the signature"}
+expect:
+  # The terrain-contradiction cap pulls this down from L4 to L2: cluster
+  # imagery corroborates the work, but terrain says the siting is
+  # categorically implausible, so no strong positive verdict is issued.
+  # score 0.328 is below corroborated_min_score 0.35, hence PARTIAL.
+  level: L2_corroborated
+  label: PARTIAL
+  rule_path_contains:
+    - n3_terrain_blocked_by=cluster_evidence_corroborates
+    - "TERRAIN_CONTRADICTION_CAP[L3_multi_indicator->L2_corroborated]"
+  rule_path_excludes: [N3_TERRAIN_PATH]

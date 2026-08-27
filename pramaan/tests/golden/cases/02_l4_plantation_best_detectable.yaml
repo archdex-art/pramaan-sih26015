@@ -1,0 +1,26 @@
+# Plantation is the most satellite-detectable intervention of all (docs §18.1):
+# a sustained multi-year NDVI rise over a delineated block. Ceiling is L4.
+claim_id: GOLD-02-PLANTATION
+intervention_type: plantation
+gates:
+  detectability_passed: true
+  expected_footprint_m2: 40000
+  pixel_area_m2: 900
+  escalated_to_cluster: false
+  scene_scale: landscape
+  terrain_plausibility: plausible
+quality:
+  metadata_integrity: 0.92
+  data_sufficiency: 0.90
+families:
+  - {family: terrain,   agreement:  0.8, reason: "not in an active channel; slope suitable"}
+  - {family: satellite, agreement:  1.0, reason: "NDVI block mean +0.18 vs pre-window"}
+  - {family: temporal,  agreement:  1.0, reason: "monotonic NDVI rise across 3 kharif seasons, Mann-Kendall p<0.05"}
+  - {family: control,   agreement:  0.9, reason: "8 matched controls, delta_site above control p90"}
+  - {family: photo,     agreement:  0.9, reason: "sapling rows visible, scene_scale landscape"}
+  - {family: context,   agreement:  0.7, reason: "rainfall within 1 sd of decadal mean"}
+expect:
+  level: L4_control_differenced
+  label: CORROBORATED
+  action: no_action
+  rule_path_contains: [L4_CONTROL_DIFFERENCED]

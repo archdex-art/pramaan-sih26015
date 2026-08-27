@@ -1,0 +1,26 @@
+name: endpoints-weekly
+
+# docs §28.3 T02 / §29: the data-sources file is the honesty backbone of the
+# submission. Re-verify weekly and commit the regenerated log so the table in
+# docs/09-data-sources.md is never stale at judging time.
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: uv run --with httpx python scripts/verify_endpoints.py --write-docs
+      - name: Commit regenerated data-sources log
+        run: |
+          git config user.name  "pramaan-ci"
+          git config user.email "ci@pramaan.invalid"
+          git add docs/09-data-sources.md docs/09-data-sources.log.json
+          git diff --staged --quiet || git commit -m "chore(docs): weekly endpoint verification"
+          git push

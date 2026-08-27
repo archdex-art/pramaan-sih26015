@@ -1,0 +1,32 @@
+# CRITICAL CASE. A borewell has no optical signature, so satellite and temporal
+# reporting "no change" is exactly what we expected to see. Absence of a
+# signature we never expected must NEVER be scored as contradiction. Without
+# the `optically_assessable` guard this bundle would reach N3 and the system
+# would send an officer to the field over a borewell that is working fine.
+claim_id: GOLD-19-BOREWELL-NO-N3
+intervention_type: borewell
+gates:
+  detectability_passed: true
+  expected_footprint_m2: 1
+  pixel_area_m2: 900
+  escalated_to_cluster: false
+  scene_scale: close_up
+  terrain_plausibility: unknown
+quality:
+  metadata_integrity: 0.92
+  data_sufficiency: 0.85
+families:
+  - {family: terrain,   agreement:  0.0, reason: "no terrain rule applies to this type"}
+  - {family: satellite, agreement: -1.0, reason: "no surface change detected"}
+  - {family: temporal,  agreement: -1.0, reason: "no persistence or index change"}
+  - {family: control,   agreement: -0.6, reason: "controls indistinguishable from site"}
+  - {family: photo,     agreement:  0.3, reason: "borewell casing visible, close_up"}
+  - {family: context,   agreement:  0.0, reason: "rainfall neutral"}
+alternatives:
+  - {description: "borewell is functional but extraction is invisible from orbit", excluded: true, basis: "type has no optical signature by definition"}
+expect:
+  level: N2_unsupported
+  label: UNSUPPORTED
+  rule_path_contains: [N2_UNSUPPORTED, n3_satellite_blocked_by=type_not_optically_assessable]
+  rule_path_excludes: [N3_SATELLITE_PATH, N3_TERRAIN_PATH]
+  dissent_contains: ["no reliable optical signature", "refuses outcome claims"]

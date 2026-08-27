@@ -1,0 +1,702 @@
+<title>PRAMAAN Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Public+Sans:wght@400;500;600;700&display=swap">
+
+<style>
+  :root {
+    --ground:   #ECF0ED;
+    --surface:  #FFFFFF;
+    --sunk:     #E7EDE9;
+    --ink:      #10201B;
+    --muted:    #55665D;
+    --faint:    #83958B;
+    --line:     #C4D0C8;
+    --hair:     #DDE5DF;
+    --primary:  #2C5A4B;
+    --water:    #146275;
+    --amber:    #9E5C13;
+    --clay:     #92321F;
+    --moss:     #6E8E7B;
+    --engine-bg:#FBF2E5;
+    --clay-bg:  #FAEDE9;
+
+    --f-display: "Newsreader", Georgia, "Times New Roman", serif;
+    --f-body:    "Public Sans", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    --f-mono:    "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:   #0C1712;
+      --surface:  #14211C;
+      --sunk:     #1A2A23;
+      --ink:      #E3EDE6;
+      --muted:    #9BAFA3;
+      --faint:    #718679;
+      --line:     #2A3D34;
+      --hair:     #22332B;
+      --primary:  #82B8A1;
+      --water:    #63BECD;
+      --amber:    #E2A458;
+      --clay:     #E8886E;
+      --moss:     #63876F;
+      --engine-bg:#241B0F;
+      --clay-bg:  #26130F;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:   #0C1712;
+    --surface:  #14211C;
+    --sunk:     #1A2A23;
+    --ink:      #E3EDE6;
+    --muted:    #9BAFA3;
+    --faint:    #718679;
+    --line:     #2A3D34;
+    --hair:     #22332B;
+    --primary:  #82B8A1;
+    --water:    #63BECD;
+    --amber:    #E2A458;
+    --clay:     #E8886E;
+    --moss:     #63876F;
+    --engine-bg:#241B0F;
+    --clay-bg:  #26130F;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0 28px 96px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1240px; margin: 0 auto; }
+
+  /* ---------------- masthead ---------------- */
+  header.masthead {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    align-items: end;
+    gap: 24px 56px;
+    padding: 76px 0 36px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 56px;
+  }
+  .masthead-left { display: flex; flex-direction: column; gap: 16px; }
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--water);
+    margin: 0;
+  }
+  h1 {
+    font-family: var(--f-display);
+    font-size: clamp(40px, 5.2vw, 60px);
+    font-weight: 500;
+    line-height: 1.05;
+    letter-spacing: -0.018em;
+    text-wrap: balance;
+    margin: 0;
+  }
+  h1 .dev { color: var(--primary); font-weight: 400; }
+  .standfirst {
+    font-family: var(--f-display);
+    font-size: 19px;
+    line-height: 1.55;
+    color: var(--muted);
+    margin: 0 0 4px;
+  }
+  .masthead dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 7px 20px;
+    font-family: var(--f-mono);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .masthead dt { color: var(--faint); letter-spacing: 0.06em; }
+  .masthead dd { margin: 0; color: var(--muted); }
+
+  /* ---------------- figures ---------------- */
+  figure {
+    margin: 0 0 56px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 30px 30px 24px;
+  }
+  .fig-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 16px;
+    padding-bottom: 20px;
+    margin-bottom: 22px;
+    border-bottom: 1px solid var(--hair);
+  }
+  .fig-num {
+    font-family: var(--f-mono);
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--water);
+  }
+  .fig-title {
+    font-family: var(--f-display);
+    font-size: 25px;
+    font-weight: 500;
+    letter-spacing: -0.012em;
+    line-height: 1.25;
+  }
+  .fig-scroll { overflow-x: auto; padding-bottom: 4px; }
+  .fig-scroll svg { display: block; width: 100%; min-width: 960px; height: auto; }
+  figcaption {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid var(--hair);
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--muted);
+    columns: 2;
+    column-gap: 48px;
+  }
+  figcaption strong { color: var(--ink); font-weight: 600; }
+  @media (max-width: 860px) { figcaption { columns: 1; } }
+
+  /* ---------------- svg type ---------------- */
+  .s-lane  { font-family: var(--f-mono); font-size: 11px;   font-weight: 600; letter-spacing: 0.15em; fill: var(--faint); }
+  .s-box   { font-family: var(--f-body); font-size: 14.5px; font-weight: 600; fill: var(--ink); }
+  .s-sub   { font-family: var(--f-mono); font-size: 10.5px; fill: var(--muted); }
+  .s-edge  { font-family: var(--f-mono); font-size: 10.5px; fill: var(--muted); }
+  .s-tag   { font-family: var(--f-mono); font-size: 10px;   font-weight: 600; letter-spacing: 0.11em; }
+  .s-note  { font-family: var(--f-body); font-size: 12.5px; font-style: italic; fill: var(--faint); }
+
+  .node     { fill: var(--sunk); stroke: var(--line); stroke-width: 1.25; }
+  .node-out { fill: none;        stroke: var(--moss); stroke-width: 1.25; stroke-dasharray: 5 4; }
+  .edge     { stroke: var(--moss);  stroke-width: 1.4; fill: none; }
+  .edge-w   { stroke: var(--water); stroke-width: 1.5; fill: none; }
+  .edge-a   { stroke: var(--amber); stroke-width: 1.6; fill: none; }
+  .edge-c   { stroke: var(--clay);  stroke-width: 1.5; fill: none; }
+  .edge-d   { stroke: var(--moss);  stroke-width: 1.4; fill: none; stroke-dasharray: 5 4; }
+  .rule     { stroke: var(--hair); stroke-width: 1; }
+
+  /* ---------------- key ---------------- */
+  .key {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 24px 36px;
+    margin: 0 0 56px;
+    padding: 30px 32px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+  }
+  .key h2 {
+    grid-column: 1 / -1;
+    font-family: var(--f-mono);
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--water);
+    margin: 0;
+  }
+  .key-item { display: flex; gap: 14px; align-items: flex-start; }
+  .swatch { width: 26px; height: 13px; border-radius: 2px; flex: none; margin-top: 5px; }
+  .key-item p { margin: 0; font-size: 13.5px; line-height: 1.52; color: var(--muted); }
+  .key-item b { display: block; color: var(--ink); font-size: 13.5px; font-weight: 600; margin-bottom: 2px; }
+
+  /* ---------------- notes ---------------- */
+  .notes { max-width: 1240px; }
+  .notes h2 {
+    font-family: var(--f-display);
+    font-size: 27px;
+    font-weight: 500;
+    letter-spacing: -0.012em;
+    margin: 0 0 26px;
+  }
+  .notes dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px 48px;
+  }
+  .notes dt {
+    font-family: var(--f-mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--water);
+    margin-bottom: 6px;
+  }
+  .notes dd { margin: 0; font-size: 15px; line-height: 1.6; color: var(--muted); }
+  .notes dd strong { color: var(--ink); font-weight: 600; }
+  .notes code {
+    font-family: var(--f-mono);
+    font-size: 0.87em;
+    color: var(--ink);
+    background: var(--sunk);
+    padding: 1px 5px;
+    border-radius: 2px;
+  }
+
+  footer {
+    margin-top: 60px;
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
+    font-family: var(--f-mono);
+    font-size: 11.5px;
+    letter-spacing: 0.05em;
+    color: var(--faint);
+  }
+
+  @media (max-width: 780px) {
+    body { padding: 0 16px 64px; }
+    header.masthead { grid-template-columns: 1fr; align-items: start; padding-top: 52px; }
+    figure { padding: 22px 16px 20px; }
+    .key { padding: 24px 20px; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="masthead-left">
+      <p class="eyebrow">Smart India Hackathon 2026 · Problem Statement 26015</p>
+      <h1>PRAMAAN <span class="dev">प्रमाण</span><br>System Architecture</h1>
+    </div>
+    <div>
+      <p class="standfirst">An evidence-reconciliation layer over the Department of Land Resources’ existing SRISHTI / DRISHTI geotag pipeline — turning each geo-coded watershed photograph into a claim the satellite record can test.</p>
+      <dl>
+        <dt>Client</dt><dd>Ministry of Rural Development · Department of Land Resources</dd>
+        <dt>Scope</dt><dd>Runtime architecture and the reconciliation mechanism</dd>
+        <dt>Version</dt><dd>1.0 · 27 August 2026</dd>
+      </dl>
+    </div>
+  </header>
+
+  <!-- ===================== FIGURE 1 ===================== -->
+  <figure>
+    <div class="fig-head">
+      <span class="fig-num">Figure 1</span>
+      <span class="fig-title">Runtime architecture, and what actually moves between tiers</span>
+    </div>
+
+    <div class="fig-scroll">
+      <svg viewBox="0 0 1440 810" role="img"
+           aria-label="PRAMAAN runtime architecture. A web console and an offline field PWA reach an Nginx edge that routes to a FastAPI service holding identity and jurisdiction. FastAPI enqueues jobs into Redis, which dispatches to five Celery workers: ingestion, inference, satellite, terrain and report. The satellite and terrain workers read from six open external sources — NASA HLS at 30 metres, Copernicus Sentinel-2, NRSC Bhoonidhi, Bhuvan OGC services, JRC Global Surface Water and CartoDEM — plus a dashed future integration with SRISHTI, DRISHTI and the WDC-PMKSY MIS that requires departmental authorisation. Workers write cloud-optimised GeoTIFFs and evidence rows into a data tier of object storage, PostGIS and indicator cubes. FastAPI hands an evidence bundle to a pure reconciliation engine, which has no other connections and returns a verdict.">
+
+        <defs>
+          <marker id="f1a" viewBox="0 0 10 8" refX="9.2" refY="4" markerWidth="7.5" markerHeight="6.5" orient="auto-start-reverse">
+            <polygon points="0,0 10,4 0,8" fill="var(--moss)"/>
+          </marker>
+          <marker id="f1w" viewBox="0 0 10 8" refX="9.2" refY="4" markerWidth="7.5" markerHeight="6.5" orient="auto-start-reverse">
+            <polygon points="0,0 10,4 0,8" fill="var(--water)"/>
+          </marker>
+          <marker id="f1am" viewBox="0 0 10 8" refX="9.2" refY="4" markerWidth="7.5" markerHeight="6.5" orient="auto-start-reverse">
+            <polygon points="0,0 10,4 0,8" fill="var(--amber)"/>
+          </marker>
+        </defs>
+
+        <!-- lane headers -->
+        <text class="s-lane" x="32"   y="30">CLIENT</text>
+        <text class="s-lane" x="300"  y="30">APPLICATION</text>
+        <text class="s-lane" x="640"  y="30">QUEUE</text>
+        <text class="s-lane" x="770"  y="30">ASYNC WORKERS</text>
+        <text class="s-lane" x="1130" y="30">EXTERNAL SOURCES</text>
+        <line class="rule" x1="32" y1="42" x2="1408" y2="42"/>
+
+        <!-- ============ CLIENT ============ -->
+        <rect class="node" x="32" y="80" width="190" height="58" rx="3"/>
+        <text class="s-box" x="48" y="104">Web Console</text>
+        <text class="s-sub" x="48" y="124">React · MapLibre · deck.gl</text>
+
+        <rect class="node-out" x="32" y="184" width="190" height="82" rx="3"/>
+        <text class="s-box" x="48" y="208" fill="var(--muted)">Field PWA</text>
+        <text class="s-sub" x="48" y="228">offline capture queue</text>
+        <text class="s-sub" x="48" y="244">resumable upload</text>
+        <text class="s-tag" x="48" y="260" fill="var(--moss)">P1</text>
+
+        <!-- ============ APPLICATION ============ -->
+        <rect class="node" x="300" y="80" width="280" height="58" rx="3"/>
+        <text class="s-box" x="318" y="104">Nginx edge</text>
+        <text class="s-sub" x="318" y="124">TLS 1.3 · rate limit · static</text>
+
+        <rect class="node" x="300" y="160" width="280" height="100" rx="3"/>
+        <text class="s-box" x="318" y="184">FastAPI</text>
+        <text class="s-sub" x="318" y="204">JWT · RBAC role × jurisdiction</text>
+        <text class="s-sub" x="318" y="220">row-level security</text>
+        <text class="s-sub" x="318" y="236">OpenAPI 3.1 · job dispatch</text>
+        <text class="s-sub" x="318" y="252">audit row on every write</text>
+
+        <!-- the one element carrying meaning -->
+        <rect x="300" y="320" width="280" height="150" rx="3"
+              fill="var(--engine-bg)" stroke="var(--amber)" stroke-width="1.75"/>
+        <text class="s-tag" x="318" y="344" fill="var(--amber)">THE CORE</text>
+        <text class="s-box" x="318" y="370">Reconciliation Engine</text>
+        <text class="s-sub" x="318" y="392">no IO · no clock · no random</text>
+        <text class="s-sub" x="318" y="408">agreement → weights → level</text>
+        <text class="s-sub" x="318" y="424">dissent panel is mandatory</text>
+        <text class="s-sub" x="318" y="440">100% test coverage</text>
+        <text class="s-sub" x="318" y="456">reproducible from lineage</text>
+
+        <rect class="node" x="440" y="500" width="140" height="60" rx="3"/>
+        <text class="s-box" x="456" y="524">TiTiler</text>
+        <text class="s-sub" x="456" y="544">COG → XYZ</text>
+
+        <!-- ============ QUEUE ============ -->
+        <rect class="node" x="640" y="160" width="70" height="350" rx="3"/>
+        <text class="s-box" x="675" y="330" text-anchor="middle">Redis</text>
+        <text class="s-sub" x="675" y="350" text-anchor="middle">queue</text>
+
+        <!-- ============ WORKERS ============ -->
+        <rect class="node" x="770" y="140" width="300" height="64" rx="3"/>
+        <text class="s-box" x="788" y="164">Ingestion</text>
+        <text class="s-sub" x="788" y="186">EXIF · provenance · dedupe · face blur</text>
+
+        <rect class="node" x="770" y="222" width="300" height="64" rx="3"/>
+        <text class="s-box" x="788" y="246">Inference</text>
+        <text class="s-sub" x="788" y="268">SigLIP zero-shot · calibration · abstain</text>
+
+        <rect class="node" x="770" y="304" width="300" height="64" rx="3"/>
+        <text class="s-box" x="788" y="328">Satellite</text>
+        <text class="s-sub" x="788" y="350">STAC · cloud mask · indices · composites</text>
+
+        <rect class="node" x="770" y="386" width="300" height="64" rx="3"/>
+        <text class="s-box" x="788" y="410">Terrain</text>
+        <text class="s-sub" x="788" y="432">flow accumulation · Strahler · slope</text>
+
+        <rect class="node" x="770" y="468" width="300" height="64" rx="3"/>
+        <text class="s-box" x="788" y="492">Report</text>
+        <text class="s-sub" x="788" y="514">Evidence Pack PDF with full lineage</text>
+
+        <!-- ============ EXTERNAL ============ -->
+        <rect class="node" x="1130" y="62" width="278" height="56" rx="3"/>
+        <text class="s-box" x="1146" y="86">NASA HLS</text>
+        <text class="s-sub" x="1146" y="106">30 m harmonised · STAC · free</text>
+
+        <rect class="node" x="1130" y="136" width="278" height="56" rx="3"/>
+        <text class="s-box" x="1146" y="160">Copernicus Data Space</text>
+        <text class="s-sub" x="1146" y="180">Sentinel-2 L2A · STAC · free</text>
+
+        <rect class="node" x="1130" y="210" width="278" height="56" rx="3"/>
+        <text class="s-box" x="1146" y="234">NRSC Bhoonidhi</text>
+        <text class="s-sub" x="1146" y="254">Resourcesat · JWT + STAC</text>
+
+        <rect class="node" x="1130" y="284" width="278" height="56" rx="3"/>
+        <text class="s-box" x="1146" y="308">Bhuvan OGC services</text>
+        <text class="s-sub" x="1146" y="328">LULC · wasteland · erosion</text>
+
+        <rect class="node" x="1130" y="358" width="278" height="56" rx="3"/>
+        <text class="s-box" x="1146" y="382">JRC Global Surface Water</text>
+        <text class="s-sub" x="1146" y="402">30 m water history, 1984–</text>
+
+        <rect class="node" x="1130" y="432" width="278" height="56" rx="3"/>
+        <text class="s-box" x="1146" y="456">CartoDEM / NASADEM</text>
+        <text class="s-sub" x="1146" y="476">30 m elevation</text>
+
+        <rect class="node-out" x="1130" y="506" width="278" height="76" rx="3"/>
+        <text class="s-box" x="1146" y="530" fill="var(--muted)">SRISHTI · DRISHTI · MIS</text>
+        <text class="s-sub" x="1146" y="550">we built to their field schema</text>
+        <text class="s-tag" x="1146" y="570" fill="var(--moss)">P2 · NEEDS DoLR AUTHORISATION</text>
+
+        <!-- ============ DATA TIER ============ -->
+        <rect x="300" y="612" width="770" height="164" rx="3"
+              fill="none" stroke="var(--line)" stroke-width="1.25" stroke-dasharray="2 4"/>
+        <text class="s-lane" x="318" y="638">DATA TIER</text>
+
+        <rect class="node" x="316" y="652" width="230" height="108" rx="3"/>
+        <text class="s-box" x="332" y="676">Object store</text>
+        <text class="s-sub" x="332" y="698">originals — restricted bucket</text>
+        <text class="s-sub" x="332" y="716">blurred derivatives · PDFs</text>
+        <text class="s-sub" x="332" y="734">COG index stacks</text>
+
+        <rect class="node" x="566" y="652" width="236" height="108" rx="3"/>
+        <text class="s-box" x="582" y="676">PostgreSQL 16 + PostGIS</text>
+        <text class="s-sub" x="582" y="698">claims · evidence · verdicts</text>
+        <text class="s-sub" x="582" y="716">append-only hash-chained</text>
+        <text class="s-sub" x="582" y="734">adjudication ledger</text>
+
+        <rect class="node" x="822" y="652" width="232" height="108" rx="3"/>
+        <text class="s-box" x="838" y="676">Indicator cubes</text>
+        <text class="s-sub" x="838" y="698">seasonal composites per</text>
+        <text class="s-sub" x="838" y="716">sub-watershed</text>
+        <text class="s-sub" x="838" y="734">warm-path reads</text>
+
+        <!-- ============ EDGES ============ -->
+        <!-- client → edge -->
+        <line class="edge" x1="222" y1="109" x2="296" y2="109" marker-end="url(#f1a)"/>
+        <text class="s-edge" x="232" y="100">HTTPS</text>
+
+        <polyline class="edge-d" points="222,225 258,225 258,125 296,125" marker-end="url(#f1a)"/>
+        <text class="s-edge" x="232" y="245">sync</text>
+
+        <!-- edge → api -->
+        <line class="edge" x1="440" y1="138" x2="440" y2="156" marker-end="url(#f1a)"/>
+
+        <!-- api → queue -->
+        <line class="edge" x1="580" y1="196" x2="636" y2="196" marker-end="url(#f1a)"/>
+        <text class="s-edge" x="584" y="187">enqueue</text>
+
+        <!-- api ↔ engine : the only two connections the core has -->
+        <line class="edge-a" x1="372" y1="260" x2="372" y2="316" marker-end="url(#f1am)"/>
+        <text class="s-edge" x="366" y="292" text-anchor="end" fill="var(--amber)">evidence bundle</text>
+        <line class="edge-a" x1="498" y1="316" x2="498" y2="260" marker-end="url(#f1am)"/>
+        <text class="s-edge" x="504" y="292" fill="var(--amber)">verdict</text>
+
+        <!-- api → postgis -->
+        <polyline class="edge" points="580,238 612,238 612,648" marker-end="url(#f1a)"/>
+        <text class="s-edge" x="618" y="600">read models · write claims</text>
+
+        <!-- queue → workers -->
+        <line class="edge" x1="710" y1="172" x2="766" y2="172" marker-end="url(#f1a)"/>
+        <line class="edge" x1="710" y1="254" x2="766" y2="254" marker-end="url(#f1a)"/>
+        <line class="edge" x1="710" y1="336" x2="766" y2="336" marker-end="url(#f1a)"/>
+        <line class="edge" x1="710" y1="418" x2="766" y2="418" marker-end="url(#f1a)"/>
+        <line class="edge" x1="710" y1="500" x2="766" y2="500" marker-end="url(#f1a)"/>
+        <text class="s-edge" x="714" y="163">dispatch</text>
+
+        <!-- workers → external bus -->
+        <line class="edge-w" x1="1070" y1="336" x2="1100" y2="336"/>
+        <line class="edge-w" x1="1100" y1="90"  x2="1100" y2="544"/>
+        <line class="edge-w" x1="1100" y1="90"  x2="1126" y2="90"  marker-end="url(#f1w)"/>
+        <line class="edge-w" x1="1100" y1="164" x2="1126" y2="164" marker-end="url(#f1w)"/>
+        <line class="edge-w" x1="1100" y1="238" x2="1126" y2="238" marker-end="url(#f1w)"/>
+        <line class="edge-w" x1="1100" y1="312" x2="1126" y2="312" marker-end="url(#f1w)"/>
+        <line class="edge-w" x1="1100" y1="386" x2="1126" y2="386" marker-end="url(#f1w)"/>
+        <line class="edge-w" x1="1100" y1="460" x2="1126" y2="460" marker-end="url(#f1w)"/>
+        <line class="edge-d" x1="1100" y1="544" x2="1126" y2="544" marker-end="url(#f1a)"/>
+        <text class="s-edge" x="1090" y="316" fill="var(--water)"
+              transform="rotate(-90 1090 316)" text-anchor="middle">STAC search · OGC GetMap · COG range reads</text>
+
+        <!-- workers → data -->
+        <line class="edge" x1="920" y1="532" x2="920" y2="648" marker-end="url(#f1a)"/>
+        <text class="s-edge" x="912" y="564" text-anchor="end">write COGs + evidence rows</text>
+
+        <!-- titiler → object store -->
+        <line class="edge" x1="510" y1="560" x2="510" y2="648" marker-end="url(#f1a)"/>
+        <text class="s-edge" x="502" y="600" text-anchor="end">tile from COG</text>
+
+        <!-- cubes → postgis -->
+        <line class="edge" x1="818" y1="706" x2="806" y2="706" marker-end="url(#f1a)"/>
+
+        <line class="rule" x1="32" y1="794" x2="1408" y2="794"/>
+        <text class="s-note" x="32" y="784">Nothing on the core path depends on a credential we do not hold. The dashed node is the only government integration — and it is a driver swap, not a rewrite.</text>
+      </svg>
+    </div>
+
+    <figcaption><strong>Read it as three separable concerns.</strong> The application tier owns identity and jurisdiction and nothing else. The workers own everything slow — scene search, cloud masking, index compositing, hydrological derivation, inference, PDF generation — and every one of them is a retryable job with an id you can inspect. The amber box owns judgement, and it is drawn with exactly two connections for a reason: an evidence bundle in, a verdict out, and no third arrow to a database, a clock or a network. <strong>That constraint is the whole reason a machine-generated verdict can survive an audit</strong>, because the same bundle always yields the same verdict and the stored lineage record is enough to recompute it years later. Every source drawn in teal is free, open and programmatically reachable today; the dashed node is the one thing we cannot reach without departmental authorisation, and the system is fully functional without it.</figcaption>
+  </figure>
+
+  <!-- ===================== FIGURE 2 ===================== -->
+  <figure>
+    <div class="fig-head">
+      <span class="fig-num">Figure 2</span>
+      <span class="fig-title">Inside the engine — how a photograph becomes an adjudicable verdict</span>
+    </div>
+
+    <div class="fig-scroll">
+      <svg viewBox="0 0 1440 660" role="img"
+           aria-label="The reconciliation mechanism. A geo-coded claim fans out to five independent evidence families: photo, terrain, satellite, temporal with matched controls, and context. A detectability gate sits on the satellite and temporal paths; when the claimed structure's footprint is smaller than one 900 square metre pixel the gate fails, per-structure satellite evidence is disabled and the claim is escalated to a cluster claim. Each family contributes a signed agreement at a fixed weight, with photo weighted lowest at 0.15 because it is the claim's own source. The weighted aggregate produces a score, confidence, coverage and data sufficiency, and an epistemic level from L0 to L4 — inconclusive is the default and causal level 5 is unreachable. The resulting verdict is provisional and carries a mandatory dissent panel, until a named officer accepts, edits or rejects it into an append-only hash-chained ledger whose corrections become the next model's training data.">
+
+        <defs>
+          <marker id="f2a" viewBox="0 0 10 8" refX="9.2" refY="4" markerWidth="7.5" markerHeight="6.5" orient="auto-start-reverse">
+            <polygon points="0,0 10,4 0,8" fill="var(--moss)"/>
+          </marker>
+          <marker id="f2c" viewBox="0 0 10 8" refX="9.2" refY="4" markerWidth="7.5" markerHeight="6.5" orient="auto-start-reverse">
+            <polygon points="0,0 10,4 0,8" fill="var(--clay)"/>
+          </marker>
+          <marker id="f2am" viewBox="0 0 10 8" refX="9.2" refY="4" markerWidth="7.5" markerHeight="6.5" orient="auto-start-reverse">
+            <polygon points="0,0 10,4 0,8" fill="var(--amber)"/>
+          </marker>
+        </defs>
+
+        <text class="s-lane" x="32"   y="30">CLAIM</text>
+        <text class="s-lane" x="470"  y="30">FIVE INDEPENDENT EVIDENCE FAMILIES</text>
+        <text class="s-lane" x="830"  y="30">AGGREGATION</text>
+        <text class="s-lane" x="1140" y="30">HUMAN ADJUDICATION</text>
+        <line class="rule" x1="32" y1="42" x2="1408" y2="42"/>
+
+        <!-- ============ CLAIM ============ -->
+        <rect class="node" x="32" y="258" width="210" height="124" rx="3"/>
+        <text class="s-box" x="48" y="284">Geo-coded claim</text>
+        <text class="s-sub" x="48" y="306">type · status · date</text>
+        <text class="s-sub" x="48" y="324">lat/lon · GPS accuracy</text>
+        <text class="s-sub" x="48" y="342">orientation · unique_id</text>
+        <text class="s-sub" x="48" y="366">uncertainty disk r ≥ 15 m</text>
+
+        <!-- fan-out bus -->
+        <line class="edge" x1="242" y1="320" x2="268" y2="320"/>
+        <line class="edge" x1="268" y1="90"  x2="268" y2="468"/>
+        <line class="edge" x1="268" y1="90"  x2="466" y2="90"  marker-end="url(#f2a)"/>
+        <line class="edge" x1="268" y1="180" x2="466" y2="180" marker-end="url(#f2a)"/>
+        <line class="edge" x1="268" y1="468" x2="466" y2="468" marker-end="url(#f2a)"/>
+        <line class="edge" x1="268" y1="320" x2="298" y2="320"/>
+
+        <!-- ============ THE GATE ============ -->
+        <polygon points="380,272 458,320 380,368 302,320"
+                 fill="none" stroke="var(--amber)" stroke-width="1.75"/>
+        <text class="s-tag" x="380" y="312" text-anchor="middle" fill="var(--amber)">DETECTABILITY</text>
+        <text class="s-tag" x="380" y="330" text-anchor="middle" fill="var(--amber)">GATE</text>
+        <text class="s-edge" x="360" y="250" text-anchor="middle" fill="var(--amber)">footprint vs 900 m² pixel</text>
+
+        <polyline class="edge" points="458,320 462,320 462,270 466,270" marker-end="url(#f2a)"/>
+        <polyline class="edge" points="458,320 462,320 462,369 466,369" marker-end="url(#f2a)"/>
+
+        <!-- gate failure -->
+        <polyline class="edge-c" points="380,368 380,550 466,550" marker-end="url(#f2c)"/>
+        <text class="s-edge" x="290" y="544" fill="var(--clay)">below limit</text>
+
+        <!-- ============ FAMILIES ============ -->
+        <rect class="node" x="470" y="60" width="300" height="60" rx="3"/>
+        <text class="s-box" x="486" y="84">Photo</text>
+        <text class="s-sub" x="486" y="106">calibrated labels · abstention</text>
+
+        <rect class="node" x="470" y="150" width="300" height="60" rx="3"/>
+        <text class="s-box" x="486" y="174">Terrain</text>
+        <text class="s-sub" x="486" y="196">flow accumulation · Strahler · slope</text>
+
+        <rect class="node" x="470" y="240" width="300" height="60" rx="3"/>
+        <text class="s-box" x="486" y="264">Satellite</text>
+        <text class="s-sub" x="486" y="286">NDVI · MNDWI · water persistence</text>
+
+        <rect class="node" x="470" y="330" width="300" height="78" rx="3"/>
+        <text class="s-box" x="486" y="354">Temporal + matched controls</text>
+        <text class="s-sub" x="486" y="376">same season, year on year</text>
+        <text class="s-sub" x="486" y="394">Δsite − median(Δ of 5–12 controls)</text>
+
+        <rect class="node" x="470" y="438" width="300" height="60" rx="3"/>
+        <text class="s-box" x="486" y="462">Context</text>
+        <text class="s-sub" x="486" y="484">rainfall anomaly · land cover</text>
+
+        <rect x="470" y="520" width="300" height="60" rx="3"
+              fill="var(--clay-bg)" stroke="var(--clay)" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <text class="s-box" x="486" y="544">Cluster claim</text>
+        <text class="s-sub" x="486" y="566">per-structure satellite disabled</text>
+
+        <!-- ============ FAN-IN WITH WEIGHTS ============ -->
+        <polyline class="edge" points="770,90  802,90  802,255 826,255" marker-end="url(#f2a)"/>
+        <polyline class="edge" points="770,180 790,180 790,275 826,275" marker-end="url(#f2a)"/>
+        <polyline class="edge" points="770,270 796,270 796,295 826,295" marker-end="url(#f2a)"/>
+        <polyline class="edge" points="770,369 790,369 790,315 826,315" marker-end="url(#f2a)"/>
+        <polyline class="edge" points="770,468 802,468 802,335 826,335" marker-end="url(#f2a)"/>
+
+        <text class="s-edge" x="774" y="80">0.15</text>
+        <text class="s-edge" x="774" y="170">0.25</text>
+        <text class="s-edge" x="774" y="260">0.25</text>
+        <text class="s-edge" x="774" y="390">0.25</text>
+        <text class="s-edge" x="774" y="488">0.10</text>
+
+        <!-- ============ AGGREGATE ============ -->
+        <rect x="830" y="220" width="240" height="170" rx="3"
+              fill="var(--engine-bg)" stroke="var(--amber)" stroke-width="1.75"/>
+        <text class="s-box" x="846" y="248">Weighted aggregate</text>
+        <text class="s-sub" x="846" y="270">score · confidence</text>
+        <text class="s-sub" x="846" y="288">coverage · sufficiency</text>
+        <line class="rule" x1="846" y1="306" x2="1054" y2="306"/>
+        <text class="s-sub" x="846" y="328">L0 → L4 epistemic level</text>
+        <text class="s-sub" x="846" y="346">N1 inconclusive is default</text>
+        <text class="s-sub" x="846" y="368" fill="var(--clay)">L5 causal is unreachable</text>
+
+        <text class="s-note" x="830" y="418">Photo carries the smallest weight —</text>
+        <text class="s-note" x="830" y="436">it is the claim’s own source, and</text>
+        <text class="s-note" x="830" y="454">independent evidence must outrank</text>
+        <text class="s-note" x="830" y="472">self-report.</text>
+
+        <line class="edge-a" x1="1070" y1="245" x2="1136" y2="245" marker-end="url(#f2am)"/>
+
+        <!-- ============ ADJUDICATION ============ -->
+        <rect class="node" x="1140" y="180" width="268" height="130" rx="3"/>
+        <text class="s-box" x="1156" y="206">Verdict</text>
+        <text class="s-sub" x="1156" y="228">epistemic level · confidence</text>
+        <text class="s-sub" x="1156" y="246">recommended action</text>
+        <text class="s-sub" x="1156" y="264">scene ids · model versions</text>
+        <text class="s-tag" x="1156" y="292" fill="var(--clay)">PROVISIONAL UNTIL SIGNED</text>
+
+        <line class="edge-c" x1="1274" y1="310" x2="1274" y2="332" marker-end="url(#f2c)"/>
+
+        <rect x="1140" y="336" width="268" height="88" rx="3"
+              fill="var(--clay-bg)" stroke="var(--clay)" stroke-width="1.5"/>
+        <text class="s-box" x="1156" y="362">Dissent panel</text>
+        <text class="s-sub" x="1156" y="384">counter-evidence, always shown</text>
+        <text class="s-sub" x="1156" y="402">alternatives not yet excluded</text>
+
+        <line class="edge" x1="1274" y1="424" x2="1274" y2="446" marker-end="url(#f2a)"/>
+
+        <rect class="node" x="1140" y="450" width="268" height="106" rx="3"/>
+        <text class="s-box" x="1156" y="476">Officer adjudicates</text>
+        <text class="s-sub" x="1156" y="498">accept · edit · reject</text>
+        <text class="s-sub" x="1156" y="516">reason required on both</text>
+        <text class="s-sub" x="1156" y="534">append-only, hash-chained</text>
+
+        <line class="edge" x1="1274" y1="556" x2="1274" y2="576" marker-end="url(#f2a)"/>
+        <text class="s-note" x="1140" y="596">Corrections become the next</text>
+        <text class="s-note" x="1140" y="614">model’s training data.</text>
+
+        <line class="rule" x1="32" y1="644" x2="1408" y2="644"/>
+        <text class="s-note" x="32" y="634">Three of the five families contain no machine learning at all — terrain, satellite indices and temporal statistics are deterministic.</text>
+      </svg>
+    </div>
+
+    <figcaption><strong>The gate is the mechanism worth staring at.</strong> Before any satellite evidence is computed, the claimed structure’s expected footprint is measured against the 900 m² area of a single 30 m pixel. A 25 × 25 m farm pond fails, and the amber path collapses: per-structure satellite evidence is switched off and the claim is escalated to a cluster assessment — visibly, in the interface and in the generated PDF. <strong>That one deterministic branch is what stops the system from reporting a confident absence for something it was never able to see</strong>, and it is precisely why a negative verdict from the families that survive can be trusted. Note also what the fan-in encodes: the photograph is the claim’s own source, so it is weighted lowest of the five. Terrain, satellite and temporal evidence are each produced without reference to the photograph, which is what makes their agreement informative — and what lets the system keep working at a lower ceiling when any single family is unavailable.</figcaption>
+  </figure>
+
+  <!-- ===================== KEY ===================== -->
+  <div class="key">
+    <h2>Reading the drawings</h2>
+    <div class="key-item">
+      <div class="swatch" style="background: var(--amber);"></div>
+      <p><b>Amber — judgement</b>The pure reconciliation engine, the weighted aggregation, and the detectability gate that governs what the engine is even allowed to consider.</p>
+    </div>
+    <div class="key-item">
+      <div class="swatch" style="background: var(--water);"></div>
+      <p><b>Teal — external data in motion</b>STAC queries, OGC requests and COG range reads against sources that are open and free today.</p>
+    </div>
+    <div class="key-item">
+      <div class="swatch" style="background: var(--clay);"></div>
+      <p><b>Clay — the negative path</b>A failed gate, the mandatory dissent panel, and every conclusion the system declines to reach.</p>
+    </div>
+    <div class="key-item">
+      <div class="swatch" style="border: 1.5px dashed var(--moss); background: transparent; height: 11px;"></div>
+      <p><b>Dashed — not built for the hackathon</b>The offline field client, and the government integration that requires DoLR authorisation.</p>
+    </div>
+  </div>
+
+  <!-- ===================== NOTES ===================== -->
+  <div class="notes">
+    <h2>Four decisions these drawings encode</h2>
+    <dl>
+      <div>
+        <dt>The core has no IO</dt>
+        <dd>The engine is a pure function called by the API, drawn deliberately with only two arrows: a bundle in, a verdict out. No database handle, no clock, no network call. <strong>The same bundle always produces the same verdict</strong> — the only reason a machine-generated conclusion can be defended under audit years after it was issued.</dd>
+      </div>
+      <div>
+        <dt>One arrow into the government workflow</dt>
+        <dd>PRAMAAN inserts itself between <strong>geo-tag</strong> and <strong>moderate</strong> in DoLR’s existing chain, and touches nothing else. It adopts the government’s own <code>unique_id</code>, its role vocabulary — SLNA, WCDC, PIA, WDT — and its work-status ladder. SRISHTI, DRISHTI and Bhuvan keep doing what they already do well.</dd>
+      </div>
+      <div>
+        <dt>Independence is what the weights buy</dt>
+        <dd>Terrain, satellite and temporal evidence are each generated without reference to the photograph. <strong>That is what makes their agreement mean something</strong>, and what lets the system degrade gracefully: lose a family and it says so, lowers its own ceiling, and carries on.</dd>
+      </div>
+      <div>
+        <dt>The system is allowed to not know</dt>
+        <dd>Inconclusive is the default outcome, not a failure state. A cloud-blocked season, a missing baseline, or a structure below the sensor’s detection limit all resolve to <strong>“requires physical verification”</strong> — never to an accusation. That phrase is the strongest language available anywhere in the interface, the API or the generated report.</dd>
+      </div>
+    </dl>
+  </div>
+
+  <footer>PRAMAAN · Smart India Hackathon 2026 · Problem Statement 26015 · Ministry of Rural Development, Department of Land Resources</footer>
+
+</div>

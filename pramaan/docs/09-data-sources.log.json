@@ -1,0 +1,90 @@
+[
+  {
+    "key": "hls",
+    "name": "NASA HLS 30 m (CMR STAC, LPCLOUD)",
+    "purpose": "Primary harmonised 30 m optical series (L30+S30) \u2014 the PS's own resolution tier",
+    "url": "https://cmr.earthdata.nasa.gov/stac/LPCLOUD",
+    "licence": "Public domain (US Govt)",
+    "status": "OK",
+    "detail": "1 item returned (matched=257), sample id=HLS.S30.T43QFA.2024006T052219.v2.0",
+    "elapsed_ms": 962,
+    "checked_at": "2026-08-27T23:09:00.634642+00:00"
+  },
+  {
+    "key": "cdse",
+    "name": "Copernicus Data Space (STAC)",
+    "purpose": "Sentinel-2 L2A \u2014 independent second optical source (FR-5.1)",
+    "url": "https://catalogue.dataspace.copernicus.eu/stac",
+    "licence": "Copernicus open licence",
+    "status": "OK",
+    "detail": "1 item returned (matched=None), sample id=S2B_MSIL2A_20241231T052119_N0511_R062_T43QFV_20241231T080106",
+    "elapsed_ms": 978,
+    "checked_at": "2026-08-27T23:09:01.613431+00:00"
+  },
+  {
+    "key": "earthsearch",
+    "name": "Element84 Earth Search (STAC)",
+    "purpose": "Sentinel-2 L2A mirror \u2014 fallback if CDSE throttles (risk R-01)",
+    "url": "https://earth-search.aws.element84.com/v1",
+    "licence": "Copernicus open licence",
+    "status": "OK",
+    "detail": "1 item returned (matched=307), sample id=S2B_43QEV_20241231_0_L2A",
+    "elapsed_ms": 824,
+    "checked_at": "2026-08-27T23:09:02.438325+00:00"
+  },
+  {
+    "key": "bhuvan_wms",
+    "name": "Bhuvan OGC WMS (NRSC)",
+    "purpose": "Authoritative LULC 50K / wasteland / erosion thematic layers \u2014 consumed, not re-derived",
+    "url": "https://bhuvan-vec2.nrsc.gov.in/bhuvan/wms",
+    "licence": "NRSC terms; view/overlay use",
+    "status": "OK",
+    "detail": "capabilities XML 6.65 MB, ~4571 <Layer> nodes; 'lulc' found \u2014 too large to fetch per-request, cache at district onboarding",
+    "elapsed_ms": 111639,
+    "checked_at": "2026-08-27T23:10:54.078351+00:00"
+  },
+  {
+    "key": "bhoonidhi",
+    "name": "NRSC Bhoonidhi API",
+    "purpose": "Resourcesat / Indian sensors; open >5 m under Indian Space Policy 2023",
+    "url": "https://bhoonidhi.nrsc.gov.in/",
+    "licence": "NRSC / ISP-2023; >5 m open, finer is govt-only (constraint C-2)",
+    "status": "SKIPPED_NO_CREDENTIALS",
+    "detail": "no BHOONIDHI_USER/BHOONIDHI_PASS in env; documented as a production-only source with an SIH substitute (docs \u00a712.5)",
+    "elapsed_ms": 0,
+    "checked_at": "2026-08-27T23:10:54.078459+00:00"
+  },
+  {
+    "key": "jrc_gsw",
+    "name": "JRC Global Surface Water",
+    "purpose": "30 m independent water-occurrence history \u2014 validates our MNDWI/Otsu water masks",
+    "url": "https://global-surface-water.appspot.com/",
+    "licence": "CC BY 4.0",
+    "status": "OK",
+    "detail": "200, 19799 bytes",
+    "elapsed_ms": 408,
+    "checked_at": "2026-08-27T23:10:54.487318+00:00"
+  },
+  {
+    "key": "chirps",
+    "name": "CHIRPS rainfall (UCSB CHG)",
+    "purpose": "Gridded rainfall for the context family's rainfall normalisation (\u00a717.3)",
+    "url": "https://data.chc.ucsb.edu/products/CHIRPS-2.0/",
+    "licence": "Public, CHG terms",
+    "status": "OK",
+    "detail": "200, 7005 bytes",
+    "elapsed_ms": 838,
+    "checked_at": "2026-08-27T23:10:55.325829+00:00"
+  },
+  {
+    "key": "nasadem",
+    "name": "NASADEM / SRTM (CMR STAC)",
+    "purpose": "30 m DEM fallback where CartoDEM is unavailable to non-govt entities",
+    "url": "https://cmr.earthdata.nasa.gov/stac/LPCLOUD",
+    "licence": "Public domain (US Govt)",
+    "status": "OK",
+    "detail": "200, 22806 bytes",
+    "elapsed_ms": 1985,
+    "checked_at": "2026-08-27T23:10:57.311255+00:00"
+  }
+]

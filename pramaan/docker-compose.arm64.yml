@@ -1,0 +1,17 @@
+name: pramaan
+
+# Local-dev overlay for Apple silicon / arm64 hosts.
+#
+# Rationale: docker/postgis publishes amd64 only, so the base compose runs
+# Postgres under emulation on M-series Macs. `imresamu/postgis` is the
+# maintained multi-arch (amd64 + arm64) rebuild of the same Dockerfile and
+# same PostGIS version, so it is a drop-in for development.
+#
+# CI stays on the official image (GitHub runners are amd64) — the image that
+# ships is the image that is tested.
+#
+# Usage: docker compose -f docker-compose.yml -f docker-compose.arm64.yml up
+services:
+  postgres:
+    platform: linux/arm64
+    image: imresamu/postgis:16-3.4-alpine

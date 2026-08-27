@@ -1,0 +1,30 @@
+# docs §16.3 Example C. Contour trenches are ~1 m wide - far below the 30 m
+# detection limit - and the monsoon window has zero usable scenes. The correct
+# answer is "we do not know", and it is NOT counted as a failure or a success.
+claim_id: GOLD-11-TRENCH-CLOUD
+intervention_type: contour_trench
+gates:
+  detectability_passed: false
+  expected_footprint_m2: 2
+  pixel_area_m2: 900
+  escalated_to_cluster: true
+  scene_scale: mid
+  terrain_plausibility: plausible
+quality:
+  metadata_integrity: 0.85
+  data_sufficiency: 0.18
+families:
+  - {family: terrain,   agreement:  0.7, reason: "slope 11%, upper catchment - consistent with trenching"}
+  - {family: satellite, agreement:  0.0, available: false, reason: "monsoon window 0 usable scenes; post window 3 scenes, 2 masked"}
+  - {family: temporal,  agreement:  0.0, available: false, reason: "insufficient usable scenes to form a seasonal composite"}
+  - {family: control,   agreement:  0.0, available: false, reason: "no series to difference"}
+  - {family: photo,     agreement:  0.6, reason: "trench lines visible on slope, scene_scale mid", cluster_scale: true}
+  - {family: context,   agreement:  0.0, reason: "rainfall neutral"}
+limitations:
+  - "monsoon window unusable: 0 of 4 scenes passed cloud masking"
+expect:
+  level: N1_inconclusive
+  label: INCONCLUSIVE
+  action: confirm_next_cycle
+  rule_path_contains: [N1_DEFAULT]
+  dissent_contains: ["below the sensor detection limit", "cluster scale"]

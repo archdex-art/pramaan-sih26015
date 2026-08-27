@@ -1,0 +1,28 @@
+# Only the photograph is available. One family, and it is the claim's own
+# source. The system can say "something consistent with the claim was
+# photographed" and nothing more.
+claim_id: GOLD-07-PHOTO-ONLY
+intervention_type: check_dam
+gates:
+  detectability_passed: true
+  expected_footprint_m2: 3200
+  pixel_area_m2: 900
+  escalated_to_cluster: false
+  scene_scale: mid
+  terrain_plausibility: unknown
+quality:
+  metadata_integrity: 0.70
+  data_sufficiency: 0.40
+families:
+  - {family: terrain,   agreement:  0.0, available: false, reason: "DEM derivatives not yet built for this district"}
+  - {family: satellite, agreement:  0.0, available: false, reason: "no usable scenes in either window"}
+  - {family: temporal,  agreement:  0.0, available: false, reason: "no index series available"}
+  - {family: control,   agreement:  0.0, available: false, reason: "no series to difference"}
+  - {family: photo,     agreement:  1.0, reason: "water_present 0.93, masonry structure clearly visible"}
+  - {family: context,   agreement:  0.0, available: false, reason: "rainfall grid not loaded"}
+expect:
+  level: L1_observed
+  label: CORROBORATED
+  coverage: 0.12
+  rule_path_contains: [L1_OBSERVED]
+  dissent_contains: ["Coverage is 0.12"]

@@ -1,0 +1,22 @@
+# Livestock and livelihood works have no satellite signature at all. Publishing
+# that is what makes the rest of the signature table believable (docs §18.1).
+claim_id: GOLD-10-LIVESTOCK
+intervention_type: livestock
+gates:
+  detectability_passed: false
+  expected_footprint_m2: 0
+  pixel_area_m2: 900
+  escalated_to_cluster: false
+  scene_scale: close_up
+  terrain_plausibility: unknown
+quality:
+  metadata_integrity: 0.95
+  data_sufficiency: 0.85
+families:
+  - {family: photo, agreement: 1.0, reason: "cattle shed and animals visible"}
+expect:
+  level: L0_recorded
+  label: INCONCLUSIVE
+  action: no_action
+  rule_path_contains: ["CEILING_CLAMP[livestock->L0_recorded]"]
+  dissent_contains: ["out of scope"]

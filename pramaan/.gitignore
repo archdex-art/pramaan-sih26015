@@ -1,0 +1,27 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+node_modules/
+dist/
+build/
+*.log
+
+# data caches — never commit rasters/photos
+data/cache/**
+!data/cache/.gitkeep
+*.tif
+*.tiff
+*.jp2
+
+# generated
+docs/api/openapi.json
+docs/diagrams/*.svg
+
+# secrets
+deploy/env/*.env
+.DS_Store

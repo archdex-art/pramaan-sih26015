@@ -1,0 +1,25 @@
+name: pramaan
+
+# Overlay for the SIH demo: pre-seeded volumes, PRAMAAN_OFFLINE flag.
+# "Works with no network" is verified operationally (§Stage 6 — run this
+# overlay with the host's network interface physically disabled), not by a
+# compose network trick: isolating the `api` service's Docker network here
+# would also cut it off from `postgres`/`redis` on the default network.
+#
+# Usage: docker compose -f docker-compose.yml -f docker-compose.demo.yml up
+services:
+  postgres:
+    volumes:
+      - ./data/demo/pg_seed.sql:/docker-entrypoint-initdb.d/99-seed.sql:ro
+
+  minio:
+    volumes:
+      - ./data/cache:/data/pramaan-cache:ro
+
+  api:
+    environment:
+      PRAMAAN_OFFLINE: "1"
+
+  worker:
+    environment:
+      PRAMAAN_OFFLINE: "1"

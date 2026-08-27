@@ -1,0 +1,30 @@
+# A claim exists and nothing has been computed for it yet. This is L0, not a
+# negative finding, and the action is to fix the pipeline - not to doubt the
+# claim.
+claim_id: GOLD-09-L0-RECORDED
+intervention_type: farm_pond
+gates:
+  detectability_passed: false
+  expected_footprint_m2: 625
+  pixel_area_m2: 900
+  escalated_to_cluster: false
+  scene_scale: unknown
+  terrain_plausibility: unknown
+quality:
+  metadata_integrity: 0.90
+  data_sufficiency: 0.50
+families:
+  - {family: terrain,   agreement: 0.0, available: false, reason: "district not onboarded"}
+  - {family: satellite, agreement: 0.0, available: false, reason: "district not onboarded"}
+  - {family: temporal,  agreement: 0.0, available: false, reason: "district not onboarded"}
+  - {family: control,   agreement: 0.0, available: false, reason: "district not onboarded"}
+  - {family: photo,     agreement: 0.0, available: false, reason: "inference worker has not run"}
+  - {family: context,   agreement: 0.0, available: false, reason: "district not onboarded"}
+expect:
+  level: L0_recorded
+  label: INCONCLUSIVE
+  score: 0.0
+  coverage: 0.0
+  confidence: 0.0
+  action: data_quality_fix
+  rule_path_contains: [L0_RECORDED, reason=no_family_available]

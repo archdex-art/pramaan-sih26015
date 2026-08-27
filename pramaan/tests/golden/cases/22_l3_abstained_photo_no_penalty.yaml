@@ -1,0 +1,29 @@
+# An abstained photo label must contribute exactly zero - not weakly, and not as
+# disagreement. The independent families alone carry this to L3, and coverage
+# drops by exactly the photo weight (0.12), which is the visible cost of the
+# abstention.
+claim_id: GOLD-22-ABSTAINED-PHOTO
+intervention_type: horticulture
+gates:
+  detectability_passed: true
+  expected_footprint_m2: 20000
+  pixel_area_m2: 900
+  escalated_to_cluster: false
+  scene_scale: unknown
+  terrain_plausibility: plausible
+quality:
+  metadata_integrity: 0.90
+  data_sufficiency: 0.85
+families:
+  - {family: terrain,   agreement:  0.8, reason: "cropland, slope 3% - suitable"}
+  - {family: satellite, agreement:  0.9, reason: "NDVI parcel mean +0.14 vs pre-window"}
+  - {family: temporal,  agreement:  0.9, reason: "distinct multi-year growth trajectory across 3 seasons"}
+  - {family: control,   agreement:  0.0, available: false, reason: "matched control pool returned 4 sites, below the minimum of 5"}
+  - {family: photo,     agreement:  0.0, available: false, reason: "all labels abstained: calibrated confidences fell inside the uncertainty band"}
+  - {family: context,   agreement:  0.5, reason: "rainfall within normal range"}
+expect:
+  level: L3_multi_indicator
+  label: CORROBORATED
+  coverage: 0.73
+  rule_path_contains: [L3_MULTI_INDICATOR]
+  dissent_contains: ["unavailable: control, photo"]

@@ -1,0 +1,43 @@
+# docs §16.3 Example B - the case that pays for the product, and the case that
+# exposed defect D1. The farm pond's 625 m2 footprint is BELOW one 900 m2
+# pixel, so the detectability gate FAILS and per-structure satellite assessment
+# is disabled. An earlier spec required "gate PASSED" for any N3 verdict, which
+# would have made this exact demo case unreachable. It is reached instead by the
+# named N3_TERRAIN_PATH: deterministic terrain implausibility plus
+# non-corroborating cluster-scale evidence plus an excluded alternative.
+#
+# The AI is NOT the reason for the flag. Priority 1 because terrain is the driver.
+claim_id: GOLD-21-N3-TERRAIN-FARMPOND
+intervention_type: farm_pond
+gates:
+  detectability_passed: false
+  expected_footprint_m2: 625
+  pixel_area_m2: 900
+  escalated_to_cluster: true
+  scene_scale: mid
+  terrain_plausibility: implausible
+quality:
+  metadata_integrity: 0.70
+  data_sufficiency: 0.80
+families:
+  - {family: terrain,   agreement: -1.0, reason: "Strahler order 0 (not on a channel), flow accumulation 12 px, slope 6.4 deg, dist-to-stream 340 m"}
+  - {family: satellite, agreement: -1.0, reason: "cluster of 4 nearby claims: no MNDWI change in any post season", cluster_scale: true}
+  - {family: temporal,  agreement: -1.0, reason: "no cluster persistence change across 2 years", cluster_scale: true}
+  - {family: control,   agreement:  0.0, reason: "controls also show no change - no differential either way"}
+  - {family: photo,     agreement:  0.4, reason: "pond_excavation 0.74; water_present 0.31 below threshold so abstained"}
+  - {family: context,   agreement:  0.0, reason: "rainfall normal"}
+alternatives:
+  - {description: "pond built but never filled", excluded: false, basis: "cannot be excluded from imagery alone - this is the question for the field visit"}
+  - {description: "GPS error placed the point away from the real pond", excluded: true, basis: "gps_accuracy 14 m cannot move the point 340 m to a channel"}
+  - {description: "coordinates entered manually", excluded: false, basis: "flagged, metadata provenance rank 3 - folded into metadata_integrity"}
+expect:
+  level: N3_contradicted
+  label: CONTRADICTED
+  action: physical_verification
+  priority: 1
+  rule_path_contains: [N3_TERRAIN_PATH]
+  rule_path_excludes: [N3_SATELLITE_PATH]
+  dissent_contains:
+    - "below the sensor detection limit"
+    - "INCONCLUSIVE"
+    - "rests on the terrain rule"

@@ -1,0 +1,33 @@
+# The good-news case (docs §16.3 Example A). Everything agrees, gate passed,
+# controls pass, full coverage. This is the highest level PRAMAAN can ever issue.
+claim_id: GOLD-01-CHECKDAM-CLEAN
+intervention_type: check_dam
+gates:
+  detectability_passed: true
+  expected_footprint_m2: 3200
+  pixel_area_m2: 900
+  escalated_to_cluster: false
+  scene_scale: mid
+  terrain_plausibility: plausible
+quality:
+  metadata_integrity: 0.95
+  data_sufficiency: 0.88
+families:
+  - {family: terrain,   agreement:  1.0, reason: "Strahler order 3, flow acc 4180 px, slope 2.1 deg, dist-to-stream 8 m"}
+  - {family: satellite, agreement:  1.0, reason: "post-monsoon MNDWI at site disk -0.08 (2022) to +0.31 (2024)"}
+  - {family: temporal,  agreement:  1.0, reason: "water persistence 4 to 7 months/yr; rabi NDVI +0.09 in command buffer"}
+  - {family: control,   agreement:  1.0, reason: "6 matched controls, delta_site +2.8 mo outside control IQR"}
+  - {family: photo,     agreement:  1.0, reason: "water_present 0.91, masonry_check_dam 0.84, scene_scale mid"}
+  - {family: context,   agreement:  1.0, reason: "rainfall 2024 = 0.96x decadal mean, change not rainfall-driven"}
+limitations:
+  - "cloud gap Jul-Aug 2024, 2 of 6 scenes lost"
+  - "only one post-monsoon season fully observed"
+expect:
+  level: L4_control_differenced
+  label: CORROBORATED
+  score: 1.0
+  coverage: 1.0
+  confidence: 0.836
+  action: no_action
+  rule_path_contains: [L4_CONTROL_DIFFERENCED]
+  dissent_contains: ["not a causal claim"]

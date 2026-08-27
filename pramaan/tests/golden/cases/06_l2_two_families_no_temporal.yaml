@@ -1,0 +1,26 @@
+# Two agreeing families, one of them non-photo, but no temporal evidence at all.
+# L3 requires a temporal family, so this stops at L2.
+claim_id: GOLD-06-L2-NO-TEMPORAL
+intervention_type: nala_bund
+gates:
+  detectability_passed: true
+  expected_footprint_m2: 4000
+  pixel_area_m2: 900
+  escalated_to_cluster: false
+  scene_scale: mid
+  terrain_plausibility: plausible
+quality:
+  metadata_integrity: 0.88
+  data_sufficiency: 0.60
+families:
+  - {family: terrain,   agreement:  1.0, reason: "order 2, along the channel"}
+  - {family: satellite, agreement:  0.9, reason: "MNDWI rise along the reach in the single usable post scene"}
+  - {family: temporal,  agreement:  0.0, available: false, reason: "pre-window has 0 usable scenes after cloud masking"}
+  - {family: control,   agreement:  0.0, available: false, reason: "control deltas require a temporal series"}
+  - {family: photo,     agreement:  0.8, reason: "bund across nala visible"}
+  - {family: context,   agreement:  0.0, reason: "rainfall neutral"}
+expect:
+  level: L2_corroborated
+  label: CORROBORATED
+  rule_path_contains: [L2_CORROBORATED]
+  dissent_contains: ["unavailable: control, temporal"]

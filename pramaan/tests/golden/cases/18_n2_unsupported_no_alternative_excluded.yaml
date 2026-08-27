@@ -1,0 +1,33 @@
+# Satellite and temporal both say the signature is absent, the gate passed and
+# data are sufficient - but NO alternative explanation has been actively
+# excluded. That single missing step is the difference between "unsupported"
+# and "contradicted". It is deliberately a hard requirement: an officer is not
+# sent to the field until the engine has ruled something out.
+claim_id: GOLD-18-N2-NO-ALT
+intervention_type: check_dam
+gates:
+  detectability_passed: true
+  expected_footprint_m2: 3200
+  pixel_area_m2: 900
+  escalated_to_cluster: false
+  scene_scale: mid
+  terrain_plausibility: plausible
+quality:
+  metadata_integrity: 0.90
+  data_sufficiency: 0.80
+families:
+  - {family: terrain,   agreement:  0.0, reason: "siting acceptable but not distinctive"}
+  - {family: satellite, agreement: -1.0, reason: "no MNDWI change at site disk across both post seasons"}
+  - {family: temporal,  agreement: -1.0, reason: "water persistence unchanged at 2 months/yr"}
+  - {family: control,   agreement: -0.5, reason: "controls show no change either"}
+  - {family: photo,     agreement:  0.4, reason: "structure visible but dry, water_present abstained"}
+  - {family: context,   agreement:  0.0, reason: "rainfall neutral"}
+alternatives:
+  - {description: "structure completed later than the claimed date", excluded: false, basis: "MIS record not available to confirm"}
+expect:
+  level: N2_unsupported
+  label: UNSUPPORTED
+  action: physical_verification
+  priority: 3
+  rule_path_contains: [N2_UNSUPPORTED, n3_satellite_blocked_by=no_alternative_excluded]
+  rule_path_excludes: [N3_SATELLITE_PATH]

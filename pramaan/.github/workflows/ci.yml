@@ -1,0 +1,75 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - run: uv sync --all-groups
+
+      - name: Lint
+        run: uv run ruff check app ../scripts
+
+      - name: Format check
+        run: uv run ruff format --check app ../scripts
+
+      # The engine is the only module under --strict. It is a pure function and
+      # government evidence depends on it; there is no excuse for Any here.
+      - name: Type-check reconciliation engine (strict)
+        run: uv run mypy app/services/reconcile --strict
+
+      - name: Engine purity (no IO, no clock, no RNG)
+        run: uv run pytest ../tests/unit/test_engine_purity.py -q
+
+      - name: Engine property invariants (I1-I5)
+        run: uv run pytest ../tests/unit/test_engine_properties.py -q
+
+      # ★ The demo's insurance policy. Nothing merges without this green.
+      - name: GOLDEN CASE SUITE (GT-3)
+        run: uv run pytest ../tests/golden -q
+
+      - name: Unit tests + engine coverage gate
+        run: >
+          uv run pytest ../tests/unit -q
+          --cov=app.services.reconcile
+          --cov-branch
+          --cov-report=term-missing
+          --cov-fail-under=100
+
+      - name: Worked examples in the design doc are reproducible
+        run: uv run python ../scripts/render_worked_examples.py --check
+
+  vocabulary-lint:
+    # W6 fix (docs §37): the system must never emit accusatory language.
+    # Enforced as a CI rule, not a style guideline.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: uv run --with pyyaml python scripts/vocabulary_lint.py
+
+  endpoints:
+    # Non-blocking by design: a government endpoint being down is a finding to
+    # record in docs/09-data-sources.md, not a broken commit.
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: uv run --with httpx python scripts/verify_endpoints.py

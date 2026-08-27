@@ -1,0 +1,26 @@
+# Percolation tank recharge cannot be observed optically, so the type ceiling is
+# L3 no matter how much evidence agrees. Proves the clamp fires and is recorded.
+claim_id: GOLD-05-PERC-TANK-CEILING
+intervention_type: percolation_tank
+gates:
+  detectability_passed: true
+  expected_footprint_m2: 12000
+  pixel_area_m2: 900
+  escalated_to_cluster: false
+  scene_scale: mid
+  terrain_plausibility: plausible
+quality:
+  metadata_integrity: 0.95
+  data_sufficiency: 0.90
+families:
+  - {family: terrain,   agreement:  1.0, reason: "order 3, in a valley, slope 2%"}
+  - {family: satellite, agreement:  1.0, reason: "seasonal MNDWI at tank"}
+  - {family: temporal,  agreement:  1.0, reason: "rabi NDVI +0.11 in 800 m buffer"}
+  - {family: control,   agreement:  1.0, reason: "7 matched controls, site outside IQR"}
+  - {family: photo,     agreement:  1.0, reason: "tank with standing water"}
+  - {family: context,   agreement:  1.0, reason: "rainfall normal"}
+expect:
+  level: L3_multi_indicator
+  label: CORROBORATED
+  rule_path_contains: [L4_CONTROL_DIFFERENCED, "CEILING_CLAMP[percolation_tank->L3_multi_indicator]"]
+  dissent_contains: ["recharge cannot be observed optically"]

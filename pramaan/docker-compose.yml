@@ -1,0 +1,142 @@
+name: pramaan
+
+services:
+  postgres:
+    # Verified 2026-08: the official postgis/postgis repo publishes a
+    # single-arch amd64 manifest only (no linux/arm64). Pinned explicitly so
+    # Apple-silicon devs get a loud, predictable emulation path instead of a
+    # silent platform warning. For faster local dev on arm64, overlay
+    # docker-compose.arm64.yml (multi-arch imresamu/postgis build).
+    platform: linux/amd64
+    image: postgis/postgis:16-3.4-alpine
+    environment:
+      POSTGRES_DB: pramaan
+      POSTGRES_USER: pramaan
+      POSTGRES_PASSWORD: pramaan_dev
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    ports:
+      - "${PRAMAAN_PG_PORT:-55432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pramaan -d pramaan"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${PRAMAAN_REDIS_PORT:-56379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: pramaan
+      MINIO_ROOT_PASSWORD: pramaan_dev_key
+    volumes:
+      - minio_data:/data
+    ports:
+      - "${PRAMAAN_MINIO_PORT:-59000}:9000"
+      - "${PRAMAAN_MINIO_CONSOLE_PORT:-59001}:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  titiler:
+    image: ghcr.io/developmentseed/titiler:latest
+    environment:
+      AWS_S3_ENDPOINT: minio:9000
+      AWS_HTTPS: "false"
+      AWS_VIRTUAL_HOSTING: "false"
+      AWS_ACCESS_KEY_ID: pramaan
+      AWS_SECRET_ACCESS_KEY: pramaan_dev_key
+    ports:
+      - "${PRAMAAN_TITILER_PORT:-58001}:8000"
+    depends_on:
+      minio:
+        condition: service_healthy
+
+  # One-shot schema migration. The API must never start against an unmigrated
+  # database: a partially-created `evidence` partition set would let rows land
+  # in the DEFAULT partition and silently defeat the partitioning plan.
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    working_dir: /app/db
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://pramaan:pramaan_dev@postgres:5432/pramaan
+    volumes:
+      - ./db:/app/db
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://pramaan:pramaan_dev@postgres:5432/pramaan
+      REDIS_URL: redis://redis:6379/0
+      OBJECT_STORE_ENDPOINT: http://minio:9000
+      OBJECT_STORE_ACCESS_KEY: pramaan
+      OBJECT_STORE_SECRET_KEY: pramaan_dev_key
+      PRAMAAN_OFFLINE: "0"
+    volumes:
+      - ./backend/app:/app/app
+      - ./data:/data
+    ports:
+      - "${PRAMAAN_API_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: ["celery", "-A", "app.workers.celery_app", "worker", "--loglevel=INFO"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://pramaan:pramaan_dev@postgres:5432/pramaan
+      REDIS_URL: redis://redis:6379/0
+      OBJECT_STORE_ENDPOINT: http://minio:9000
+      OBJECT_STORE_ACCESS_KEY: pramaan
+      OBJECT_STORE_SECRET_KEY: pramaan_dev_key
+    volumes:
+      - ./backend/app:/app/app
+      - ./data:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # `frontend` and `nginx` are deliberately absent until the stages that build
+  # them land (Console = Stage 4, TLS/reverse proxy = Stage 5/6). Declaring a
+  # service whose Dockerfile does not exist would break `docker compose up`,
+  # and Gate 0's whole purpose is that the command works on a clean machine.
+  # Add them in the stage that produces them, not before.
+
+volumes:
+  pg_data:
+  minio_data:

@@ -1,0 +1,29 @@
+# Satellite and temporal both disagree and an alternative has been excluded, so
+# N3_SATELLITE_PATH would otherwise fire - but data sufficiency is 0.20, below
+# the 0.35 floor. Absence of evidence is not evidence of absence (docs §16.4).
+claim_id: GOLD-13-INSUFFICIENT
+intervention_type: check_dam
+gates:
+  detectability_passed: true
+  expected_footprint_m2: 3200
+  pixel_area_m2: 900
+  escalated_to_cluster: false
+  scene_scale: mid
+  terrain_plausibility: marginal
+quality:
+  metadata_integrity: 0.85
+  data_sufficiency: 0.20
+families:
+  - {family: terrain,   agreement:  0.0, reason: "order 2 but slope 6.1 deg - marginal siting"}
+  - {family: satellite, agreement: -1.0, reason: "no MNDWI change in the single usable post scene"}
+  - {family: temporal,  agreement: -1.0, reason: "no persistence change, 1 usable scene per window"}
+  - {family: control,   agreement:  0.0, available: false, reason: "control series too sparse"}
+  - {family: photo,     agreement:  0.3, reason: "structure partially visible, heavy shadow"}
+  - {family: context,   agreement:  0.0, reason: "rainfall neutral"}
+alternatives:
+  - {description: "GPS error moved the sampling disk off the impoundment", excluded: true, basis: "gps_accuracy 5 m cannot move the disk off a 3200 m2 footprint"}
+expect:
+  level: N1_inconclusive
+  label: INCONCLUSIVE
+  rule_path_contains: [N1_DEFAULT, reason=data_sufficiency_below_threshold, n3_satellite_blocked_by=insufficient_data]
+  rule_path_excludes: [N3_SATELLITE_PATH, N2_UNSUPPORTED]

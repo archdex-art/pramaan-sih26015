@@ -1,0 +1,28 @@
+# A dug well has no optical signature. Even with every family agreeing, the
+# ceiling is L1 - existence only. The system refuses outcome claims for this
+# type, and says so in the dissent panel.
+claim_id: GOLD-08-DUGWELL-CEILING
+intervention_type: dug_well
+gates:
+  detectability_passed: true
+  expected_footprint_m2: 40
+  pixel_area_m2: 900
+  escalated_to_cluster: false
+  scene_scale: close_up
+  terrain_plausibility: unknown
+quality:
+  metadata_integrity: 0.95
+  data_sufficiency: 0.85
+families:
+  - {family: terrain,   agreement:  0.6, reason: "permeable strata, adjacent to drainage line"}
+  - {family: satellite, agreement:  0.5, reason: "no change detected, as expected for this type"}
+  - {family: temporal,  agreement:  0.5, reason: "no change detected, as expected for this type"}
+  - {family: control,   agreement:  0.5, reason: "controls also show no change"}
+  - {family: photo,     agreement:  1.0, reason: "lined dug well with parapet clearly visible"}
+  - {family: context,   agreement:  0.5, reason: "rainfall neutral"}
+expect:
+  level: L1_observed
+  label: CORROBORATED
+  action: no_action
+  rule_path_contains: ["CEILING_CLAMP[dug_well->L1_observed]"]
+  dissent_contains: ["refuses outcome claims"]

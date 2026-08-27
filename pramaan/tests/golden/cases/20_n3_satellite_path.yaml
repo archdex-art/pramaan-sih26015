@@ -1,0 +1,35 @@
+# N3 via the satellite path: the structure is large enough to see, we looked
+# across both post seasons with sufficient data, the expected signature is
+# absent in three independent families, and an alternative has been excluded.
+# Terrain is neutral here - so priority is 2, NOT 1. Priority 1 is reserved for
+# deterministic terrain drivers.
+claim_id: GOLD-20-N3-SATELLITE
+intervention_type: percolation_tank
+gates:
+  detectability_passed: true
+  expected_footprint_m2: 14000
+  pixel_area_m2: 900
+  escalated_to_cluster: false
+  scene_scale: landscape
+  terrain_plausibility: plausible
+quality:
+  metadata_integrity: 0.93
+  data_sufficiency: 0.82
+families:
+  - {family: terrain,   agreement:  0.0, reason: "order 2 in a shallow depression - siting is acceptable"}
+  - {family: satellite, agreement: -1.0, reason: "MNDWI at the tank footprint unchanged across 2 post-monsoon seasons"}
+  - {family: temporal,  agreement: -1.0, reason: "no water persistence at a 14000 m2 footprint spanning 15 pixels"}
+  - {family: control,   agreement: -1.0, reason: "7 matched controls, delta_site inside the control IQR - no differential"}
+  - {family: photo,     agreement:  0.8, reason: "excavated tank visible, water_present 0.71"}
+  - {family: context,   agreement:  0.0, reason: "rainfall 1.02x decadal mean - a dry year does not explain this"}
+alternatives:
+  - {description: "tank completed after the claimed date", excluded: true, basis: "post window extends 24 months past the claimed date; no signature appears in any season"}
+  - {description: "cloud masked the impoundment in every post scene", excluded: true, basis: "AOI-specific usable fraction is 0.82 across 11 scenes"}
+expect:
+  level: N3_contradicted
+  label: CONTRADICTED
+  action: physical_verification
+  priority: 2
+  rule_path_contains: [N3_SATELLITE_PATH]
+  rule_path_excludes: [N3_TERRAIN_PATH]
+  dissent_contains: ["Counter-evidence"]

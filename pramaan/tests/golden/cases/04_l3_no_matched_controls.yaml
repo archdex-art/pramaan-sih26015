@@ -1,0 +1,29 @@
+# Thin matched-control pool (N<5) makes the control family unavailable. That
+# blocks L4 without counting against the claim - the distinction that makes
+# `control` a separate family from `temporal` (ADR-001).
+claim_id: GOLD-04-NO-CONTROLS
+intervention_type: check_dam
+gates:
+  detectability_passed: true
+  expected_footprint_m2: 3200
+  pixel_area_m2: 900
+  escalated_to_cluster: false
+  scene_scale: mid
+  terrain_plausibility: plausible
+quality:
+  metadata_integrity: 0.90
+  data_sufficiency: 0.80
+families:
+  - {family: terrain,   agreement:  1.0, reason: "Strahler order 2, slope 3.4 deg, dist-to-stream 12 m"}
+  - {family: satellite, agreement:  1.0, reason: "MNDWI rise at site disk post-monsoon"}
+  - {family: temporal,  agreement:  0.8, reason: "persistence 3 to 6 months/yr"}
+  - {family: control,   agreement:  0.0, available: false, reason: "only 3 candidate controls in sub-watershed, minimum is 5"}
+  - {family: photo,     agreement:  0.9, reason: "water_present 0.88, structure visible"}
+  - {family: context,   agreement:  0.6, reason: "rainfall slightly above mean"}
+expect:
+  level: L3_multi_indicator
+  label: CORROBORATED
+  coverage: 0.85
+  rule_path_contains: [L3_MULTI_INDICATOR]
+  rule_path_excludes: [L4_CONTROL_DIFFERENCED]
+  dissent_contains: ["unavailable: control"]

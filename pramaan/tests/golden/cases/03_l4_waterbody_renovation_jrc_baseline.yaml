@@ -1,0 +1,27 @@
+# Best-evidenced category: JRC Global Surface Water gives a free multi-decadal
+# pre-intervention baseline, so the temporal family is unusually strong.
+claim_id: GOLD-03-WATERBODY
+intervention_type: waterbody_renovation
+gates:
+  detectability_passed: true
+  expected_footprint_m2: 60000
+  pixel_area_m2: 900
+  escalated_to_cluster: false
+  scene_scale: landscape
+  terrain_plausibility: plausible
+quality:
+  metadata_integrity: 0.98
+  data_sufficiency: 0.95
+families:
+  - {family: terrain,   agreement:  1.0, reason: "in a depression with existing water history"}
+  - {family: satellite, agreement:  1.0, reason: "max water extent +42% vs pre-window"}
+  - {family: temporal,  agreement:  1.0, reason: "JRC GSW persistence 5 to 9 months/yr"}
+  - {family: control,   agreement:  0.8, reason: "5 matched water bodies, delta_site outside IQR"}
+  - {family: photo,     agreement:  1.0, reason: "desilted tank with water, scene_scale landscape"}
+  - {family: context,   agreement:  1.0, reason: "drought year - change cannot be rainfall-driven"}
+expect:
+  level: L4_control_differenced
+  label: CORROBORATED
+  # score 0.97 (control at 0.8, not 1.0) x coverage 1.0 x quality 0.931
+  confidence: 0.9031
+  rule_path_contains: [L4_CONTROL_DIFFERENCED]

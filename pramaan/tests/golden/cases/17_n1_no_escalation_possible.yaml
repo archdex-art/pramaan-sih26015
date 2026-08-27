@@ -1,0 +1,30 @@
+# Gate failed and no cluster escalation was possible (an isolated sub-pixel
+# work). Terrain alone cannot carry an N3 verdict, by design.
+claim_id: GOLD-17-NO-ESCALATION
+intervention_type: gully_plug
+gates:
+  detectability_passed: false
+  expected_footprint_m2: 60
+  pixel_area_m2: 900
+  escalated_to_cluster: false
+  scene_scale: close_up
+  terrain_plausibility: implausible
+quality:
+  metadata_integrity: 0.85
+  data_sufficiency: 0.60
+families:
+  - {family: terrain,   agreement: -1.0, reason: "order 0 and slope 1.1 deg - not a gully environment"}
+  - {family: satellite, agreement:  0.0, available: false, reason: "per-structure assessment disabled; no neighbours within 500 m to cluster"}
+  - {family: temporal,  agreement:  0.0, available: false, reason: "no AOI large enough to sample"}
+  - {family: control,   agreement:  0.0, available: false, reason: "no site delta"}
+  - {family: photo,     agreement:  0.5, reason: "small masonry plug visible, scene_scale close_up"}
+  - {family: context,   agreement:  0.0, reason: "rainfall neutral"}
+alternatives:
+  - {description: "gully has since been filled by sedimentation", excluded: false, basis: "not assessable at 30 m"}
+expect:
+  level: N2_unsupported
+  label: UNSUPPORTED
+  # `escalated_to_cluster: false` is checked before cluster families are
+  # inspected, so this is the guard that fires.
+  rule_path_contains: [n3_terrain_blocked_by=not_escalated_to_cluster]
+  rule_path_excludes: [N3_TERRAIN_PATH, N3_SATELLITE_PATH]

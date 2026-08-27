@@ -1,0 +1,32 @@
+# Terrain is marginal (-0.5), not categorically implausible (-1.0), so
+# N3_TERRAIN_PATH must refuse to fire. A marginal rule is not grounds to send an
+# officer to the field over someone's reputation.
+claim_id: GOLD-15-MARGINAL-TERRAIN
+intervention_type: farm_pond
+gates:
+  detectability_passed: false
+  expected_footprint_m2: 625
+  pixel_area_m2: 900
+  escalated_to_cluster: true
+  scene_scale: mid
+  terrain_plausibility: marginal
+quality:
+  metadata_integrity: 0.88
+  data_sufficiency: 0.70
+families:
+  - {family: terrain,   agreement: -0.5, reason: "slope 9.2% just outside the <8% rule for farm ponds - marginal"}
+  - {family: satellite, agreement: -0.6, reason: "no cluster MNDWI change", cluster_scale: true}
+  - {family: temporal,  agreement: -0.4, reason: "no cluster persistence change", cluster_scale: true}
+  - {family: control,   agreement:  0.0, reason: "controls show no change either - no differential"}
+  - {family: photo,     agreement:  0.7, reason: "pond excavation clearly visible"}
+  - {family: context,   agreement:  0.0, reason: "rainfall neutral"}
+alternatives:
+  - {description: "pond built but never filled", excluded: false, basis: "cannot be excluded from imagery alone"}
+expect:
+  # N2, not N1: net score is negative AND an unexcluded alternative remains.
+  # That is precisely N2's definition (docs §7.3). The case's purpose is to
+  # prove N3_TERRAIN_PATH refuses to fire on MARGINAL terrain, and it does.
+  level: N2_unsupported
+  label: UNSUPPORTED
+  rule_path_contains: [n3_terrain_blocked_by=terrain_not_categorically_implausible]
+  rule_path_excludes: [N3_TERRAIN_PATH, N3_SATELLITE_PATH]
