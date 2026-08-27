@@ -19,7 +19,8 @@ purity:
 	cd backend && uv run pytest ../tests/unit/test_engine_purity.py -q
 
 lint:
-	cd backend && uv run ruff check app && uv run mypy app/services/reconcile --strict
+	cd backend && uv run ruff check app ../scripts ../tests \
+		&& uv run mypy app/services/reconcile app/services/terrain --strict
 
 fmt:
 	cd backend && uv run ruff format app
@@ -38,8 +39,9 @@ migrate:
 
 # Everything CI runs, in CI's order. Run this before pushing.
 check: lint
-	cd backend && uv run pytest ../tests/unit ../tests/golden -q \
-		--cov=app.services.reconcile --cov-branch --cov-fail-under=100
+	cd backend && uv run pytest ../tests -q \
+		--cov=app.services.reconcile --cov=app.services.terrain \
+		--cov-branch --cov-fail-under=100
 	uv run --with pyyaml python scripts/vocabulary_lint.py
 	cd backend && uv run python ../scripts/render_worked_examples.py --check
 

@@ -44,10 +44,17 @@ jobs:
       - name: GOLDEN CASE SUITE (GT-3)
         run: uv run pytest ../tests/golden -q
 
-      - name: Unit tests + engine coverage gate
+      # 100% branch coverage is required on the deterministic core only: the
+      # engine and the pure producers (terrain rules, detectability gate).
+      # These are the modules with no IO, so full coverage is achievable
+      # without mocking, and they are the modules whose bugs become government
+      # evidence. IO-bound producers (satellite, ingestion) get behavioural
+      # tests instead — demanding 100% there would buy mocks, not correctness.
+      - name: Tests + deterministic-core coverage gate
         run: >
-          uv run pytest ../tests/unit -q
+          uv run pytest ../tests -q
           --cov=app.services.reconcile
+          --cov=app.services.terrain
           --cov-branch
           --cov-report=term-missing
           --cov-fail-under=100
