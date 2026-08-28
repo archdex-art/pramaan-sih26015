@@ -1,0 +1,122 @@
+[
+  {
+    "key": "lucas_cover",
+    "name": "JRC LUCAS cover photos 2006-2018",
+    "url": "https://jeodpp.jrc.ec.europa.eu/ftp/jrc-opendata/LUCAS/LUCAS_COVER/",
+    "use": "874,646 geo-tagged close-up land-cover photos with land-cover and plant species labels. Pre-training / linear-probe corpus for vegetation and bare-soil labels. EU only, so a domain-shift source, never a test set.",
+    "licence": "JRC open data (CC-BY-4.0 paper, ESSD doi:10.5194/essd-14-4463-2022)",
+    "asset": "GT-1",
+    "status": "OK",
+    "detail": "200, directory listing exposes campaign folders: 2006, 2009, 2012, 2015, 2018",
+    "elapsed_ms": 554,
+    "checked_at": "2026-08-28T00:09:03.896678+00:00"
+  },
+  {
+    "key": "lucas_harmonised",
+    "name": "JRC Harmonised LUCAS in-situ database",
+    "url": "https://data.jrc.ec.europa.eu/dataset/f85907ae-d123-471f-a44a-8cca993485a2",
+    "use": "The survey table behind the photos: 1,351,293 observations at 651,780 locations. Joins photo -> land-cover label -> coordinates.",
+    "licence": "JRC open data",
+    "asset": "GT-1",
+    "status": "OK",
+    "detail": "200, 81281 bytes",
+    "elapsed_ms": 714,
+    "checked_at": "2026-08-28T00:09:04.611828+00:00"
+  },
+  {
+    "key": "lucas_ml",
+    "name": "LUCAS landscape photos, ML-ready (Source Cooperative)",
+    "url": "https://source.coop/jrc-lucas/jrc-lucas-ml",
+    "use": "Agri-environmental semantic segmentation of LUCAS landscape photos. Closest public analogue to a DRISHTI landscape geotag: observer-view photographs of agricultural land with per-pixel labels.",
+    "licence": "Check per-repository terms on Source Cooperative",
+    "asset": "GT-1",
+    "status": "OK",
+    "detail": "200, 281448 bytes",
+    "elapsed_ms": 1010,
+    "checked_at": "2026-08-28T00:09:05.622120+00:00"
+  },
+  {
+    "key": "mapillary",
+    "name": "Mapillary street-level imagery API v4",
+    "url": "https://graph.mapillary.com/images",
+    "use": "THE most relevant ground-photo source for India: geotagged, camera-bearing, roadside imagery covering rural roads. Mine within the demo districts for ponds, tanks, bunds, gullies and bare fields.",
+    "licence": "CC-BY-SA 4.0 (verified on Mapillary's licence page). ShareAlike means derived annotation sets must be shared alike - fine for us, we publish GT-1 anyway.",
+    "asset": "GT-1",
+    "status": "AUTH_REQUIRED",
+    "detail": "HTTP 500 unauthenticated; token still required",
+    "elapsed_ms": 270,
+    "checked_at": "2026-08-28T00:09:05.892822+00:00"
+  },
+  {
+    "key": "commons",
+    "name": "Wikimedia Commons geosearch API",
+    "url": "https://commons.wikimedia.org/w/api.php",
+    "use": "Mineable, not a dataset: geotagged CC-licensed photographs. Useful for check dams, percolation tanks and stepwells where Mapillary has no road access. Every file's licence must be read individually.",
+    "licence": "Per-file (CC0 / CC-BY / CC-BY-SA / rarely non-free)",
+    "asset": "GT-1",
+    "status": "OK",
+    "detail": "control (Paris 10 km) 500 files; demo AOI (19.15N 77.30E, 10 km) 41 files \u2014 genuinely sparse, not a query error. On-topic categories total ~283 files: Check dams in India=14; Dams in Maharashtra=108; Ponds in India=42; Water tanks in India=46; Stepwells in India=15; Irrigation in India=58. Radius is capped at 10000 m; larger values return empty, not more data.",
+    "elapsed_ms": 4333,
+    "checked_at": "2026-08-28T00:09:10.226834+00:00"
+  },
+  {
+    "key": "places365",
+    "name": "Places365 scene classification",
+    "url": "http://places2.csail.mit.edu/download.html",
+    "use": "WOULD be useful for zero-shot prompt calibration (categories include creek, farm, cultivated field, fishpond). Two blockers: access is now form-gated, and the licence is non-commercial research only - which constraint C-7 already forbids as a production dependency.",
+    "licence": "Non-commercial research/education only -> cannot be a production dependency for a government system (same rule that excludes GEE, C-7)",
+    "asset": "GT-1",
+    "status": "GATED",
+    "detail": "download page no longer offers direct archives: access to the legacy dataset now requires signing a Google Form while v2 is in progress",
+    "elapsed_ms": 445,
+    "checked_at": "2026-08-28T00:09:10.672191+00:00"
+  },
+  {
+    "key": "agrifieldnet",
+    "name": "AgriFieldNet India (Radiant Earth / IDinsight)",
+    "url": "https://source.coop/radiantearth/agrifieldnet-competition",
+    "use": "Sentinel-2 crop-type labels for fields in Uttar Pradesh, Rajasthan, Odisha and Bihar. Not watershed structures, but the only India-specific labelled EO reference set found - useful to sanity-check our seasonal NDVI compositing against independent Indian crop labels.",
+    "licence": "CC-BY-4.0",
+    "asset": "CONTEXT",
+    "status": "OK",
+    "detail": "200, 249967 bytes",
+    "elapsed_ms": 1305,
+    "checked_at": "2026-08-28T00:09:11.977594+00:00"
+  },
+  {
+    "key": "overpass",
+    "name": "OpenStreetMap via Overpass API",
+    "url": "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+    "use": "Candidate GT-2 seed. VERDICT: unusable for check dams (see the measured counts in the notes below), partially usable for ponds and water bodies. Production route is a Geofabrik India extract, not the live API.",
+    "licence": "ODbL 1.0 (share-alike; attribution required)",
+    "asset": "GT-2",
+    "status": "OK",
+    "detail": "global mirror confirmed by positive control (Zurich 190); 27 natural=water features in the demo AOI bbox",
+    "elapsed_ms": 28506,
+    "checked_at": "2026-08-28T00:09:40.483904+00:00"
+  },
+  {
+    "key": "geofabrik",
+    "name": "Geofabrik India OSM extract",
+    "url": "https://download.geofabrik.de/asia/india.html",
+    "use": "The reliable way to use OSM at scale: download the India .osm.pbf once and query locally with osmium, instead of hammering Overpass.",
+    "licence": "ODbL 1.0",
+    "asset": "GT-2",
+    "status": "OK",
+    "detail": "200, 18810 bytes",
+    "elapsed_ms": 554,
+    "checked_at": "2026-08-28T00:09:41.038097+00:00"
+  },
+  {
+    "key": "jrc_gsw",
+    "name": "JRC Global Surface Water",
+    "url": "https://global-surface-water.appspot.com/",
+    "use": "Already in the design (docs \u00a712): 30 m multi-decadal water occurrence. Doubles as an independent GT-2 reference for the waterbody_renovation type, which is why that type carries an L4 ceiling.",
+    "licence": "CC-BY-4.0",
+    "asset": "GT-2",
+    "status": "OK",
+    "detail": "200, 19799 bytes",
+    "elapsed_ms": 396,
+    "checked_at": "2026-08-28T00:09:41.434622+00:00"
+  }
+]
