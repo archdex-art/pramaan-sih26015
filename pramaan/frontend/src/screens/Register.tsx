@@ -34,17 +34,65 @@ const LADDER: Level[] = [
   "N3_contradicted",
 ];
 
+/**
+ * Action bands. The ladder answers "how strong is the evidence"; a band answers
+ * "so what does an officer do about it", which is the question a register of a
+ * thousand claims is actually for.
+ *
+ * The mapping is not cosmetic grouping. N2/N3 and N1 are deliberately separate
+ * bands because they demand opposite responses: an absent expected signature
+ * with alternatives excluded is a site to go and stand on, whereas an
+ * inconclusive verdict is a data problem and sending a jeep at it wastes the
+ * trip. Collapsing them into one "needs attention" pile — which is what a
+ * conventional RAG dashboard does — destroys exactly that distinction.
+ */
+const BANDS = [
+  {
+    key: "supported",
+    label: "Corroborated",
+    levels: ["L2_corroborated", "L3_multi_indicator", "L4_control_differenced"],
+    action: "No field visit. Include in outcome reporting.",
+  },
+  {
+    key: "recorded",
+    label: "Recorded, not corroborated",
+    levels: ["L0_recorded", "L1_observed"],
+    action: "Confirm in the next observation cycle.",
+  },
+  {
+    key: "unresolved",
+    label: "Unresolved",
+    levels: ["N1_inconclusive"],
+    action: "Data problem, not a site problem. Re-assess, do not dispatch.",
+  },
+  {
+    key: "flagged",
+    label: "Flagged",
+    levels: ["N2_unsupported", "N3_contradicted"],
+    action: "Requires physical verification, priority-ranked.",
+  },
+] as const;
+
+type BandKey = (typeof BANDS)[number]["key"];
+
 const shortLevel = (level: string) => level.split("_")[0] ?? level;
 
 export function Register({ rows, onOpen }: Props) {
   const [level, setLevel] = useState<string>("all");
   const [prov, setProv] = useState<string>("all");
+  const [band, setBand] = useState<BandKey | "all">("all");
+
+  const bandLevels = useMemo(
+    () => BANDS.find((b) => b.key === band)?.levels as readonly string[] | undefined,
+    [band],
+  );
 
   const shown = useMemo(
     () =>
       rows
         .filter((r) => level === "all" || r.level === level)
         .filter((r) => prov === "all" || r.provenance === prov)
+        .filter((r) => !bandLevels || (r.level !== null && bandLevels.includes(r.level)))
         // Down the ladder, strongest first, then by confidence. Ordering by
         // confidence alone would put a high-confidence N3 above an L4.
         .sort((a, b) => {
@@ -53,7 +101,7 @@ export function Register({ rows, onOpen }: Props) {
           if (ai !== bi) return ai - bi;
           return (b.confidence ?? 0) - (a.confidence ?? 0);
         }),
-    [rows, level, prov],
+    [rows, level, prov, bandLevels],
   );
 
   const counts = useMemo(() => {
@@ -63,6 +111,23 @@ export function Register({ rows, onOpen }: Props) {
   }, [rows]);
 
   const measured = rows.filter((r) => r.provenance === "measured").length;
+
+  /** Per-band totals, and how many of each came from real imagery. The second
+   *  number is the one that stops the strip reading as a portfolio it is not. */
+  const bandCounts = useMemo(
+    () =>
+      BANDS.map((b) => {
+        const inBand = rows.filter(
+          (r) => r.level !== null && (b.levels as readonly string[]).includes(r.level),
+        );
+        return {
+          ...b,
+          n: inBand.length,
+          measured: inBand.filter((r) => r.provenance === "measured").length,
+        };
+      }),
+    [rows],
+  );
 
   return (
     <div className="screen">
@@ -76,6 +141,40 @@ export function Register({ rows, onOpen }: Props) {
           </p>
         </div>
       </header>
+
+      {/* Triage strip. Bands are filters, not decoration — a summary number an
+          officer cannot click is a number they have to re-derive by hand. */}
+      <div className="triage rise">
+        {bandCounts.map((b) => (
+          <button
+            key={b.key}
+            type="button"
+            className="triage-band"
+            data-band={b.key}
+            aria-pressed={band === b.key}
+            onClick={() => setBand((cur) => (cur === b.key ? "all" : b.key))}
+          >
+            <span className="triage-n mono">{b.n}</span>
+            <span className="triage-label">{b.label}</span>
+            <span className="triage-levels mono">
+              {b.levels.map(shortLevel).join(" · ")}
+            </span>
+            <span className="triage-action">{b.action}</span>
+            <span className="triage-prov">
+              {b.measured} measured · {b.n - b.measured} golden-case
+            </span>
+          </button>
+        ))}
+      </div>
+      <p className="triage-note note">
+        Bands group the ladder by the action they demand, not by severity.{" "}
+        <strong>Unresolved is not a weak Flagged</strong> — an inconclusive
+        verdict is a data gap and dispatching a field team at it wastes the trip,
+        whereas a flagged claim is a site to go and stand on. Counts are over the
+        {" "}
+        {rows.length} claims in this register, of which {measured} came from real
+        imagery.
+      </p>
 
       <div className="filters rise">
         <Filter

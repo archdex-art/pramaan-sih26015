@@ -27,6 +27,7 @@ interface Props {
   evidence: EvidenceTree | null;
   onMethod: () => void;
   onTemporal: () => void;
+  onMap: () => void;
 }
 
 const GLYPH: Record<string, string> = {
@@ -45,7 +46,14 @@ const FAMILY_NOTE: Record<string, string> = {
   photo: "What the field sent. Weighted lowest — it is the claim's own source.",
 };
 
-export function Detail({ claim, verdict, evidence, onMethod, onTemporal }: Props) {
+export function Detail({
+  claim,
+  verdict,
+  evidence,
+  onMethod,
+  onTemporal,
+  onMap,
+}: Props) {
   const level = verdict?.level ?? claim.level ?? null;
   const short = level ? (level.split("_")[0] ?? level) : null;
 
@@ -66,6 +74,9 @@ export function Detail({ claim, verdict, evidence, onMethod, onTemporal }: Props
           {claim.provisional && <span className="chip ghost">provisional</span>}
           <button className="btn" onClick={onTemporal}>
             Temporal analysis
+          </button>
+          <button className="btn" onClick={onMap}>
+            Plan view
           </button>
           <button className="btn" onClick={onMethod}>
             Method

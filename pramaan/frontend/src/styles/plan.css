@@ -1,0 +1,219 @@
+/* S3 - plan view.
+ *
+ * Drawn on the product's own paper ground. No basemap tiles, so the whole
+ * screen renders with the cable out.
+ *
+ * Restraint is the point: the drainage network is thousands of hairlines, and
+ * anything else on the page competing for weight would bury the one layer that
+ * carries the argument. Colour appears on exactly two things - the intervention
+ * and its uncertainty disk - because those are the two the officer is asked to
+ * judge.
+ */
+
+.plan-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s5);
+  flex-wrap: wrap;
+  margin-bottom: var(--s3);
+}
+
+.plan-head h2 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.plan-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s4);
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  font-size: 11.5px;
+  color: var(--ink-2);
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle input {
+  accent-color: var(--ink-2);
+  cursor: pointer;
+}
+
+.plan-wrap {
+  border: 1px solid var(--rule);
+  background: var(--paper-2);
+  padding: var(--s3);
+}
+
+.plan {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* --- frame and graticule ------------------------------------------------- */
+
+.plan-frame rect {
+  stroke: var(--rule-2);
+  stroke-width: 1;
+}
+
+.plan-frame line {
+  stroke: var(--rule-2);
+  stroke-width: 1;
+}
+
+.tick {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  fill: var(--ink-3);
+  text-anchor: middle;
+}
+
+.tick-y {
+  text-anchor: end;
+}
+
+/* --- drainage ------------------------------------------------------------ */
+
+/* Stroke width is set per segment from Strahler order, so it is deliberately
+   absent here. Opacity below 1 lets the order-1 mesh read as texture while the
+   trunk stays legible where they overlap. */
+.plan-drainage line {
+  stroke: var(--ink-2);
+  stroke-linecap: round;
+  opacity: 0.72;
+}
+
+.plan-aoi {
+  fill: none;
+  stroke: var(--ink-3);
+  stroke-width: 1;
+  stroke-dasharray: 5px 4px;
+}
+
+/* --- controls ------------------------------------------------------------ */
+
+.plan-control circle {
+  fill: var(--paper-2);
+  stroke: var(--l3);
+  stroke-width: 1.4;
+  cursor: help;
+}
+
+.plan-control:hover circle {
+  fill: var(--l3);
+}
+
+/* --- site --------------------------------------------------------------- */
+
+/* The disk is the honest part of this screen: it is the GPS uncertainty drawn
+   to the same scale as the drainage, which is what makes "we never sample a
+   single pixel" visible rather than asserted. */
+.plan-disk {
+  fill: color-mix(in srgb, var(--n1) 14%, transparent);
+  stroke: var(--n1);
+  stroke-width: 1;
+  stroke-dasharray: 3px 2.5px;
+}
+
+.plan-foot {
+  fill: none;
+  stroke: var(--n1);
+  stroke-width: 1.2;
+}
+
+.plan-pin {
+  stroke: var(--ink);
+  stroke-width: 1.6;
+}
+
+.plan-pin-dot {
+  fill: var(--ink);
+}
+
+.plan-north path {
+  stroke: var(--ink-2);
+  stroke-width: 1.2;
+  fill: none;
+}
+
+.plan-scale line {
+  stroke: var(--ink-2);
+  stroke-width: 1.2;
+}
+
+.plan-hover {
+  margin: var(--s2) 0 0;
+  min-height: 1.4em;
+  font-size: 11px;
+  color: var(--ink-2);
+}
+
+/* --- legend ------------------------------------------------------------- */
+
+.plan-legend {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s5);
+  margin-top: var(--s4);
+}
+
+.plan-legend h3 {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0 0 var(--s3);
+}
+
+.legend-orders {
+  display: flex;
+  gap: var(--s4);
+  list-style: none;
+  margin: 0 0 var(--s3);
+  padding: 0;
+}
+
+.legend-orders li {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+
+@media (width <= 768px) {
+  .plan-legend {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Locator ring. Fixed pixel size and explicitly not to scale — the legend says
+   so in words, because a ring that looks like an extent and isn't one is the
+   single easiest way for a map to lie. */
+.plan-locator {
+  fill: none;
+  stroke: var(--n1);
+  stroke-width: 1.1;
+  opacity: 0.55;
+}
+
+.plan-site-label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  fill: var(--ink);
+  text-anchor: start;
+}
+
+.tick-scale {
+  text-anchor: start;
+}

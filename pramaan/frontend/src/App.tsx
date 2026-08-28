@@ -20,12 +20,14 @@ import {
   type Verdict,
 } from "./lib/api";
 import { Detail } from "./screens/Detail";
+import { PlanMap } from "./screens/PlanMap";
 import { Register } from "./screens/Register";
 
 type Route =
   | { name: "register" }
   | { name: "claim"; id: number }
-  | { name: "temporal"; id: number };
+  | { name: "temporal"; id: number }
+  | { name: "map"; id: number };
 
 function parseHash(): Route {
   const h = location.hash.replace(/^#\/?/, "");
@@ -33,6 +35,7 @@ function parseHash(): Route {
   const id = Number(raw);
   if (screen === "claim" && Number.isFinite(id)) return { name: "claim", id };
   if (screen === "temporal" && Number.isFinite(id)) return { name: "temporal", id };
+  if (screen === "map" && Number.isFinite(id)) return { name: "map", id };
   return { name: "register" };
 }
 
@@ -139,6 +142,9 @@ export function App() {
               onTemporal={() => {
                 location.hash = `#/temporal/${claim.claim_id}`;
               }}
+              onMap={() => {
+                location.hash = `#/map/${claim.claim_id}`;
+              }}
             />
           ) : (
             <Loading what="claim" />
@@ -184,6 +190,15 @@ export function App() {
             )}
           </div>
         )}
+
+        {route.name === "map" && (
+          <PlanMap
+            claimId={route.id}
+            onBack={() => {
+              location.hash = `#/claim/${String(route.id)}`;
+            }}
+          />
+        )}
       </main>
 
       {method && <MethodDrawer onClose={() => setMethod(false)} />}
@@ -214,6 +229,27 @@ function Rail({ route, onMethod }: { route: Route; onMethod: () => void }) {
 
   return (
     <nav className="rail" aria-label="Main">
+      {/* Institutional attribution above the wordmark. This product is an
+          instrument of a programme, not a brand, and the header should say
+          whose programme before it says whose software. The build state is on
+          the same line on purpose: a prototype that presents itself as a
+          deployed system is the dishonesty this whole console is against. */}
+      <div className="rail-gov">
+        <span className="gov-full">Government of India</span>
+        <span className="gov-full">Ministry of Rural Development · DoLR</span>
+        <span className="gov-full">WDC-PMKSY 2.0</span>
+        {/* Two explicit spans rather than a CSS content swap: the caveat has to
+            survive the icon-only rail, because its entire purpose is that a
+            screenshot of any screen at any width carries it. Swapping text via
+            `content` would hide it from assistive technology. */}
+        <span className="rail-build mono" title="Prototype — not a deployed system">
+          <span className="gov-full">PROTOTYPE · not a deployed system</span>
+          <span className="gov-short" aria-hidden="true">
+            PROTO
+          </span>
+        </span>
+      </div>
+
       <a className="wordmark" href="#/">
         <span className="deva">प्रमाण</span>
         <span className="latin">PRAMAAN</span>
@@ -232,6 +268,14 @@ function Rail({ route, onMethod }: { route: Route; onMethod: () => void }) {
             href={route.name === "register" ? "#/claim/1" : `#/claim/${route.id}`}
           >
             Reconciliation
+          </a>
+        </li>
+        <li>
+          <a
+            className={on("map")}
+            href={route.name === "register" ? "#/map/1" : `#/map/${String(route.id)}`}
+          >
+            Plan view
           </a>
         </li>
         <li>

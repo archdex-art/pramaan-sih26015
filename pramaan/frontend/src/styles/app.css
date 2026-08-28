@@ -807,3 +807,174 @@ dl.formula dd {
     padding: var(--s4);
   }
 }
+
+/* --- triage strip (S1) --------------------------------------------------
+ * Four action bands above the register. Bands are buttons because a summary
+ * number an officer cannot click is a number they re-derive by hand.
+ *
+ * No filled cards. The colour lives in a left edge rule keyed to the same
+ * level palette as the chips, so a band and the rows it selects are visibly
+ * the same claim about the same evidence.
+ */
+
+.triage {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--s3);
+  margin-bottom: var(--s3);
+}
+
+.triage-band {
+  display: grid;
+  gap: var(--s1);
+  align-content: start;
+  padding: var(--s3) var(--s3) var(--s3) var(--s4);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--ink-3);
+  background: var(--paper-2);
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease;
+}
+
+.triage-band:hover {
+  background: var(--paper-3);
+}
+
+.triage-band[aria-pressed="true"] {
+  background: var(--paper-3);
+  border-color: var(--rule-2);
+  box-shadow: inset 0 0 0 1px var(--rule-2);
+}
+
+.triage-band[data-band="supported"] {
+  border-left-color: var(--l4);
+}
+
+.triage-band[data-band="recorded"] {
+  border-left-color: var(--l1);
+}
+
+.triage-band[data-band="unresolved"] {
+  border-left-color: var(--n1);
+}
+
+.triage-band[data-band="flagged"] {
+  border-left-color: var(--n3);
+}
+
+.triage-n {
+  font-size: 24px;
+  line-height: 1.05;
+  font-weight: 500;
+}
+
+.triage-label {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.triage-levels {
+  font-size: 9.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.02em;
+}
+
+.triage-action {
+  font-size: 11px;
+  color: var(--ink-2);
+  line-height: 1.4;
+  margin-top: var(--s1);
+}
+
+.triage-prov {
+  font-size: 10px;
+  color: var(--ink-3);
+  margin-top: var(--s1);
+}
+
+.triage-note {
+  margin: 0 0 var(--s5);
+  max-width: 78ch;
+}
+
+@media (width <= 1024px) {
+  .triage {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (width <= 620px) {
+  .triage {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* --- institutional attribution -----------------------------------------
+ * Whose programme, before whose software. Set small and quiet: this is the
+ * masthead of a record, not a banner.
+ */
+
+.rail-gov {
+  display: grid;
+  gap: 1px;
+  padding-bottom: var(--s4);
+  margin-bottom: var(--s4);
+  border-bottom: 1px solid var(--rule);
+  font-size: 9.5px;
+  line-height: 1.5;
+  letter-spacing: 0.03em;
+  color: var(--ink-3);
+  text-transform: uppercase;
+}
+
+/* The build state is amber because it is a caveat, and it is stated in the
+   masthead so a screenshot of any screen carries it.
+ *
+ * The colour is a darkened --n1 set here rather than the token itself.
+ * Measured: --n1 on the rail's paper-3 is 4.23:1, which fails AA for 9px text.
+ * The token is not touched because it is already tuned for the verdict chips,
+ * where it sits on a different background. #885f18 measures 4.91:1 here and
+ * 5.36:1 on plain paper. */
+.rail-build {
+  margin-top: var(--s2);
+  color: #885f18;
+  font-size: 9px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+/* Short form is hidden by default; the collapsed rail swaps which one shows.
+   Both exist in the DOM so the caveat is never removed, only abbreviated. */
+.gov-short {
+  display: none;
+}
+
+@media (width <= 1024px) {
+  /* The icon-only rail is 62px. The attribution prose does not fit and was
+     spilling past the rail edge — but the build caveat must not vanish with
+     it, so the abbreviation takes over. */
+  .rail-gov {
+    padding-bottom: var(--s3);
+    margin-bottom: var(--s3);
+    justify-items: center;
+    text-align: center;
+  }
+
+  .rail-gov .gov-full {
+    display: none;
+  }
+
+  .rail-gov .gov-short {
+    display: inline;
+  }
+
+  .rail-build {
+    margin-top: 0;
+    letter-spacing: 0.04em;
+  }
+}

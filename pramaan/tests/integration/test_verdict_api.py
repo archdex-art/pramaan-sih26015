@@ -702,3 +702,106 @@ def test_control_basis_is_a_sentence_not_a_criteria_dict(claim_id: int) -> None:
     assert body["control_available"] is True
     assert not body["control_basis"].startswith("{")
     assert "control" in body["control_basis"].lower()
+
+
+# --- plan view map (S3) --------------------------------------------------
+#
+# The map is the thematic product PS 26015 asks for, and every layer on it is a
+# geometry the analysis used. These tests exist to stop it degrading into
+# decoration: a network drawn at uniform weight, a control ring that was never
+# selected, or a layer with no stated source.
+
+
+def _map(claim_id: int) -> dict[str, object]:
+    r = _client().get(f"/api/v1/claims/{claim_id}/map")
+    assert r.status_code == 200, r.text
+    return dict(r.json())
+
+
+def test_map_drainage_carries_strahler_order(claim_id: int) -> None:
+    """Line weight on the plan is Strahler order, so it must survive transport.
+
+    Order is the value the terrain rule tests. A network rendered at uniform
+    weight is drawing a different quantity from the one being argued.
+    """
+    drainage = _map(claim_id)["drainage"]
+    assert isinstance(drainage, list)
+    assert len(drainage) > 100, "an extracted network under 100 segments is a broken clip"
+    orders = {int(seg["order"]) for seg in drainage}
+    assert min(orders) >= 1, "order 0 means 'not on an extracted channel', not a segment"
+    assert max(orders) >= 3, "no trunk in the window means the clip missed the valley"
+    for seg in drainage[:50]:
+        assert len(seg["from"]) == 2
+        assert len(seg["to"]) == 2
+        # One D8 step, so the endpoints differ. Equal endpoints would be a
+        # pointer decoded as a no-op, which renders as nothing at all.
+        assert seg["from"] != seg["to"]
+
+
+def test_map_geometry_lies_inside_the_declared_window(claim_id: int) -> None:
+    """Every point must fall inside the stated window.
+
+    A point outside it is silently clipped by the renderer, which is how a
+    control that was genuinely used stops being visible on the plan.
+    """
+    payload = _map(claim_id)
+    window = payload["window"]
+    controls = payload["controls"]
+    site = payload["site"]
+    assert isinstance(window, list)
+    assert isinstance(controls, list)
+    assert isinstance(site, dict)
+    w, s, e, n = (float(v) for v in window)
+    pts = [tuple(float(v) for v in site["lonlat"])]
+    pts += [tuple(float(v) for v in c["lonlat"]) for c in controls]
+    for lon, lat in pts:
+        assert w <= lon <= e, f"lon {lon} outside window [{w}, {e}]"
+        assert s <= lat <= n, f"lat {lat} outside window [{s}, {n}]"
+
+
+def test_map_controls_are_the_selected_set_with_their_covariates(
+    claim_id: int,
+) -> None:
+    """The pins must be the sites the matcher chose, not a decorative ring.
+
+    An earlier build measured the index series at fixed ring positions. Drawing
+    those would show an officer a control set that was never used.
+    """
+    controls = _map(claim_id)["controls"]
+    assert isinstance(controls, list)
+    assert len(controls) >= 5, "below MIN_CONTROLS the family is unavailable, not drawn"
+    ids = [str(c["control_id"]) for c in controls]
+    assert len(set(ids)) == len(ids), "duplicate control on the plan"
+    for c in controls:
+        # The covariates are what the matching was done on. Without them the
+        # hover cannot say why a site qualified.
+        assert float(c["slope_deg"]) >= 0.0
+        assert float(c["dist_from_site_m"]) > 0.0
+
+
+def test_map_states_provenance_for_every_layer(claim_id: int) -> None:
+    """A layer without stated provenance is a picture, not evidence."""
+    prov = _map(claim_id)["provenance"]
+    assert isinstance(prov, dict)
+    for layer in ("drainage", "controls", "site", "basemap"):
+        assert prov.get(layer), f"layer {layer} has no provenance"
+    # The basemap note carries the offline claim (§38). If it stops saying the
+    # basemap is absent, the console has quietly acquired a tile dependency.
+    assert "None" in str(prov["basemap"])
+
+
+def test_map_serves_the_numbers_the_disk_is_drawn_from(claim_id: int) -> None:
+    """The uncertainty disk and footprint are drawn to scale, so both must arrive.
+
+    Missing either one makes the renderer fall back to a default and draw a
+    size that means nothing — the precise failure the disk exists to prevent.
+    """
+    payload = _map(claim_id)
+    assert payload["uncertainty_m"] is not None
+    assert float(str(payload["uncertainty_m"])) > 0
+    assert payload["expected_footprint_m2"] is not None
+    assert float(str(payload["expected_footprint_m2"])) > 0
+
+
+def test_map_404s_for_a_claim_that_does_not_exist() -> None:
+    assert _client().get("/api/v1/claims/99999999/map").status_code == 404

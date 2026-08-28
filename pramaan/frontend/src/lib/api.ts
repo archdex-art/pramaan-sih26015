@@ -224,3 +224,46 @@ export const fetchEvidence = (claimId: number): Promise<EvidenceTree> =>
 export const fetchLadder = (): Promise<Ladder> => get("/api/v1/method/ladder");
 
 export const fetchWeights = (): Promise<Weights> => get("/api/v1/method/weights");
+
+// --- plan-view map layers (S3) -----------------------------------------
+
+/** One D8 step from a stream cell to its downstream neighbour. */
+export interface DrainageSegment {
+  from: [number, number];
+  to: [number, number];
+  /** Strahler order — the value the terrain rule tests. Drives line weight. */
+  order: number;
+}
+
+export interface MapControlPoint {
+  control_id: string;
+  lonlat: [number, number];
+  slope_deg: number;
+  elevation_m: number;
+  dist_to_stream_m: number;
+  dist_from_site_m: number;
+}
+
+export interface PlanMap {
+  claim_id: number;
+  unique_id: string;
+  intervention_type: string;
+  level: string | null;
+  confidence: number | null;
+  uncertainty_m: number | null;
+  expected_footprint_m2: number | null;
+  aoi: [number, number, number, number];
+  window: [number, number, number, number];
+  site: {
+    lonlat: [number, number];
+    strahler_order: number;
+    dist_to_stream_m: number;
+    slope_deg: number;
+  };
+  controls: MapControlPoint[];
+  drainage: DrainageSegment[];
+  provenance: Record<string, string>;
+}
+
+export const fetchMap = (claimId: number): Promise<PlanMap> =>
+  get<PlanMap>(`/api/v1/claims/${claimId}/map`);

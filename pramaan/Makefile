@@ -1,4 +1,4 @@
-.PHONY: up down demo-up video seed seed-golden series terrain web web-check test test-db golden purity lint fmt demo verify-endpoints examples vocab migrate check bench verify-datasets measure-windows
+.PHONY: up down demo-up video seed seed-golden series terrain map web web-check test test-db golden purity lint fmt demo verify-endpoints examples vocab migrate check bench verify-datasets measure-windows
 
 up:
 	docker compose up --build
@@ -131,6 +131,13 @@ demo-up:
 terrain:
 	uv run --with whitebox --with rasterio --with numpy --with pyproj \
 		python scripts/build_terrain.py
+
+# Vectorises the DEM derivatives into the plan-view layers (S3). Depends on
+# `make terrain` having run, because it reads that chain's streams/strahler/
+# d8_pointer rasters — the same ones the terrain verdict is computed from.
+map:
+	uv run --with rasterio --with numpy --with pyproj \
+		python scripts/build_map_layers.py
 
 # Frontend dev server. Proxies /api to 127.0.0.1:8000, so run the API first.
 web:
