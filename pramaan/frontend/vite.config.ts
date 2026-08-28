@@ -9,6 +9,12 @@ export default defineConfig({
     // The API is served on 8000 in dev. Proxying keeps the frontend free of a
     // base-URL environment variable and keeps requests same-origin, so nothing
     // depends on CORS configuration that production would not have.
-    proxy: { "/api": { target: "http://127.0.0.1:8000", changeOrigin: true } },
+    // `/healthz` as well as `/api`: the rail reads the engine version and
+    // offline flag from it, and without the proxy entry it silently rendered
+    // an ellipsis forever.
+    proxy: {
+      "/api": { target: "http://127.0.0.1:8000", changeOrigin: true },
+      "/healthz": { target: "http://127.0.0.1:8000", changeOrigin: true },
+    },
   },
 });

@@ -1,121 +1,263 @@
 /**
- * S7 shell: the verdict header and the temporal chart.
+ * Console shell and routing.
  *
- * The level chip is rendered *before* confidence, per docs §24.4: level says how
- * strongly a thing is known, confidence says how much of that level's evidence
- * agreed. Showing confidence first invites reading 0.16 as "16% likely true",
- * which is not what it means.
+ * Hash routing, no router dependency. Three routes is not a routing problem, and
+ * `react-router` would be 20 kB to solve one it does not have.
  */
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { MethodDrawer } from "./components/MethodDrawer";
 import { TemporalControlChart } from "./components/charts/TemporalControlChart";
 import {
   ApiError,
+  fetchClaims,
+  fetchEvidence,
   fetchTemporal,
   fetchVerdict,
+  type EvidenceTree,
+  type RegisterRow,
   type TemporalComparison,
   type Verdict,
 } from "./lib/api";
+import { Detail } from "./screens/Detail";
+import { Register } from "./screens/Register";
 
-const CLAIM_ID = Number(new URLSearchParams(location.search).get("claim") ?? 1);
+type Route =
+  | { name: "register" }
+  | { name: "claim"; id: number }
+  | { name: "temporal"; id: number };
+
+function parseHash(): Route {
+  const h = location.hash.replace(/^#\/?/, "");
+  const [screen, raw] = h.split("/");
+  const id = Number(raw);
+  if (screen === "claim" && Number.isFinite(id)) return { name: "claim", id };
+  if (screen === "temporal" && Number.isFinite(id)) return { name: "temporal", id };
+  return { name: "register" };
+}
 
 export function App() {
-  const [temporal, setTemporal] = useState<TemporalComparison | null>(null);
-  const [verdict, setVerdict] = useState<Verdict | null>(null);
+  const [route, setRoute] = useState<Route>(parseHash);
+  const [rows, setRows] = useState<RegisterRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [method, setMethod] = useState(false);
+
+  const [verdict, setVerdict] = useState<Verdict | null>(null);
+  const [evidence, setEvidence] = useState<EvidenceTree | null>(null);
+  const [temporal, setTemporal] = useState<TemporalComparison | null>(null);
+  const [temporalError, setTemporalError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onHash = () => {
+      setRoute(parseHash());
+      // Close the drawer on navigation. It is a modal over one screen, and
+      // leaving it open across a route change stranded it over a different
+      // screen with no relationship to what was behind it.
+      setMethod(false);
+    };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
-    // Settled, not all: a missing verdict must not blank the chart, and a
-    // missing chart must not hide the verdict. Each half fails on its own.
-    void Promise.allSettled([fetchTemporal(CLAIM_ID), fetchVerdict(CLAIM_ID)]).then(
-      ([t, v]) => {
-        if (cancelled) return;
-        if (t.status === "fulfilled") setTemporal(t.value);
-        else
-          setError(
-            t.reason instanceof ApiError ? t.reason.detail : String(t.reason),
-          );
-        if (v.status === "fulfilled") setVerdict(v.value);
-      },
+    void fetchClaims().then(
+      (r) => !cancelled && setRows(r),
+      (e: unknown) =>
+        !cancelled &&
+        setError(e instanceof ApiError ? e.detail : String(e)),
     );
     return () => {
       cancelled = true;
     };
   }, []);
 
+  const id = route.name === "register" ? null : route.id;
+
+  useEffect(() => {
+    if (id === null) return;
+    let cancelled = false;
+    setVerdict(null);
+    setEvidence(null);
+    // Settled, not all: a claim with no temporal series must still show its
+    // verdict, and a claim whose verdict failed to load must still show its
+    // evidence. Each panel fails on its own.
+    void Promise.allSettled([
+      fetchVerdict(id),
+      fetchEvidence(id),
+      fetchTemporal(id),
+    ]).then(([v, e, t]) => {
+      if (cancelled) return;
+      if (v.status === "fulfilled") setVerdict(v.value);
+      if (e.status === "fulfilled") setEvidence(e.value);
+      if (t.status === "fulfilled") {
+        setTemporal(t.value);
+        setTemporalError(null);
+      } else {
+        setTemporal(null);
+        setTemporalError(
+          t.reason instanceof ApiError ? t.reason.detail : String(t.reason),
+        );
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  const open = useCallback((claimId: number) => {
+    location.hash = `#/claim/${claimId}`;
+  }, []);
+
+  const claim = rows?.find((r) => r.claim_id === id) ?? null;
+
   return (
-    <main>
-      <header className="masthead">
-        <h1>
-          PRAMAAN <span className="sub">Temporal Analysis</span>
-        </h1>
-        {temporal && (
-          <p className="claim-id">
-            {temporal.intervention_unique_id} · {temporal.intervention_type} ·
-            claimed complete {temporal.claimed_date}
+    <div className="app">
+      <Rail route={route} onMethod={() => setMethod(true)} />
+
+      <main className="main">
+        {error !== null && (
+          <p className="error-inline">
+            <strong>Could not reach the API.</strong> {error}
           </p>
         )}
-      </header>
 
-      {verdict && <VerdictHeader verdict={verdict} />}
+        {route.name === "register" &&
+          (rows ? (
+            <Register rows={rows} onOpen={open} />
+          ) : (
+            <Loading what="claims register" />
+          ))}
 
-      {error !== null && (
-        <section className="error">
-          <strong>The temporal chart could not be drawn.</strong>
-          <p>{error}</p>
-        </section>
-      )}
+        {route.name === "claim" &&
+          (claim ? (
+            <Detail
+              claim={claim}
+              verdict={verdict}
+              evidence={evidence}
+              onMethod={() => setMethod(true)}
+              onTemporal={() => {
+                location.hash = `#/temporal/${claim.claim_id}`;
+              }}
+            />
+          ) : (
+            <Loading what="claim" />
+          ))}
 
-      {temporal && <TemporalControlChart data={temporal} />}
+        {route.name === "temporal" && (
+          <div className="screen">
+            <header className="screen-head rise">
+              <div>
+                <h1>Temporal analysis</h1>
+                <p className="sub mono">
+                  {claim?.unique_id ?? `claim ${route.id}`}
+                </p>
+              </div>
+              <div className="head-actions">
+                <button
+                  className="btn"
+                  onClick={() => {
+                    location.hash = `#/claim/${route.id}`;
+                  }}
+                >
+                  Back to verdict
+                </button>
+                <button className="btn" onClick={() => setMethod(true)}>
+                  Method
+                </button>
+              </div>
+            </header>
+            {temporal ? (
+              <TemporalControlChart data={temporal} />
+            ) : temporalError !== null ? (
+              <div className="panel empty-state rise">
+                <h2>No temporal series for this claim.</h2>
+                <p className="note">{temporalError}</p>
+                <p className="note">
+                  Golden-case claims carry no observed series — they are synthetic
+                  evidence bundles, not imagery. Open the measured claim to see the
+                  chart.
+                </p>
+              </div>
+            ) : (
+              <Loading what="temporal series" />
+            )}
+          </div>
+        )}
+      </main>
 
-      {!temporal && error === null && <p className="loading">Loading…</p>}
-    </main>
+      {method && <MethodDrawer onClose={() => setMethod(false)} />}
+    </div>
   );
 }
 
-function VerdictHeader({ verdict }: { verdict: Verdict }) {
+function Loading({ what }: { what: string }) {
+  // A sentence, not a shimmer. A skeleton that never resolves is
+  // indistinguishable from a broken screen.
+  return <p className="loading">Loading {what}…</p>;
+}
+
+function Rail({ route, onMethod }: { route: Route; onMethod: () => void }) {
+  const [health, setHealth] = useState<{
+    engine_version?: string;
+    offline_mode?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    void fetch("/healthz")
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setHealth)
+      .catch(() => setHealth(null));
+  }, []);
+
+  const on = (name: string) => (route.name === name ? "on" : "");
+
   return (
-    <section className="verdict">
-      <div className="verdict-row">
-        {/* Level first, per docs §24.4. */}
-        <span className={`chip level-${verdict.level.slice(0, 2).toLowerCase()}`}>
-          {verdict.level.replace(/_/g, " ")}
-        </span>
-        <span className="chip label">{verdict.label}</span>
-        {verdict.provisional && <span className="chip provisional">PROVISIONAL</span>}
-      </div>
-      <dl className="metrics">
-        <div>
-          <dt>confidence</dt>
-          <dd>{verdict.confidence.toFixed(4)}</dd>
-        </div>
-        <div>
-          <dt>coverage</dt>
-          <dd>{verdict.coverage.toFixed(2)}</dd>
-        </div>
-        <div>
-          <dt>data sufficiency</dt>
-          <dd>{verdict.data_sufficiency.toFixed(2)}</dd>
-        </div>
-        <div>
-          <dt>engine</dt>
-          <dd>{verdict.engine_version}</dd>
-        </div>
-      </dl>
-      {/* Always expanded. A verdict without visible counter-evidence is not
-          shippable (docs §16.2 STEP 11), so this is not collapsible. */}
-      <div className="dissent">
-        <h2>Dissent</h2>
-        <ul>
-          {verdict.dissent.map((d) => (
-            <li key={d}>{d}</li>
-          ))}
-        </ul>
-      </div>
-      <p className="rule-path">
-        rule path: <code>{verdict.rule_path.join(" → ")}</code>
-      </p>
-    </section>
+    <nav className="rail" aria-label="Main">
+      <a className="wordmark" href="#/">
+        <span className="deva">प्रमाण</span>
+        <span className="latin">PRAMAAN</span>
+        <span className="label">proof</span>
+      </a>
+
+      <ul>
+        <li>
+          <a className={on("register")} href="#/">
+            Claims register
+          </a>
+        </li>
+        <li>
+          <a
+            className={on("claim")}
+            href={route.name === "register" ? "#/claim/1" : `#/claim/${route.id}`}
+          >
+            Reconciliation
+          </a>
+        </li>
+        <li>
+          <a
+            className={on("temporal")}
+            href={route.name === "register" ? "#/temporal/1" : `#/temporal/${route.id}`}
+          >
+            Temporal analysis
+          </a>
+        </li>
+        <li>
+          <button className="rail-btn" onClick={onMethod}>
+            Method
+          </button>
+        </li>
+      </ul>
+
+      <footer className="rail-foot">
+        <p className="label">engine</p>
+        <p className="mono">{health?.engine_version ?? "…"}</p>
+        <p className="label">offline mode</p>
+        <p className="mono">{health?.offline_mode ?? "…"}</p>
+        <p className="rail-note">
+          Nothing here becomes government evidence until a named officer signs it.
+        </p>
+      </footer>
+    </nav>
   );
 }

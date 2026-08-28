@@ -546,7 +546,19 @@ def main() -> int:
         )
 
     bundle = build_bundle(data, cmps)
-    result = reconcile_claim(claim_id, wire_payload(bundle))
+    # Stamp provenance at the verdict lineage root, which is the one place the
+    # claims API reads it from. Without this the measured claim is classified
+    # `golden` by the API's safe default — correct behaviour on its part, wrong
+    # label on this row.
+    result = reconcile_claim(
+        claim_id,
+        wire_payload(bundle),
+        extra_lineage={
+            "provenance": data["provenance"],
+            "measured_at": data["measured_at"],
+            "control_basis": data.get("control_basis", "unrecorded"),
+        },
+    )
 
     print(f"claim_id      : {claim_id}")
     print(f"verdict_id    : {result['verdict_id']}")

@@ -111,7 +111,14 @@ export class ApiError extends Error {
 }
 
 async function get<T>(path: string): Promise<T> {
-  const response = await fetch(path, { headers: { Accept: "application/json" } });
+  // `no-store`: every one of these reads mutable state. A register showing a
+  // stale verdict after a reconciliation has run is worse than a slow one, and
+  // the browser did exactly that during development — the DB held new rows and
+  // the table kept rendering the previous response.
+  const response = await fetch(path, {
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+  });
   if (!response.ok) {
     // Surface the API's own reason. A generic "failed to load" would hide
     // "reconciliation has not run", which is a different problem with a
@@ -136,3 +143,84 @@ export const fetchTemporal = (claimId: number): Promise<TemporalComparison> =>
 
 export const fetchVerdict = (claimId: number): Promise<Verdict> =>
   get(`/api/v1/claims/${claimId}/verdict`);
+
+// --- claims register (S1) and evidence tree (S2) ------------------------
+
+export type Provenance = "measured" | "golden";
+export type Direction = "agrees" | "neutral" | "disagrees" | "unavailable";
+
+export interface RegisterRow {
+  claim_id: number;
+  unique_id: string;
+  intervention_type: string;
+  asserted_date: string | null;
+  district_lgd: string;
+  lat: number;
+  lon: number;
+  uncertainty_m: number | null;
+  detectability: string | null;
+  expected_footprint_m2: number | null;
+  verdict_id: number | null;
+  version: number | null;
+  level: Level | null;
+  label: Label | null;
+  score: number | null;
+  confidence: number | null;
+  coverage: number | null;
+  data_sufficiency: number | null;
+  status: string | null;
+  rule_path: string[];
+  dissent_count: number;
+  families_available: number;
+  families_total: number;
+  /** Rendered as a badge at chip size, never as a footnote. */
+  provenance: Provenance;
+  provisional: boolean;
+}
+
+export interface EvidenceEntry {
+  family: string;
+  /** Null when unavailable. Never 0.0 — that would read as "measured, neutral". */
+  agreement: number | null;
+  available: boolean;
+  reason: string;
+  cluster_scale: boolean;
+  lineage: Record<string, unknown>;
+  direction: Direction;
+}
+
+export interface EvidenceTree {
+  claim_id: number;
+  entries: EvidenceEntry[];
+  families_available: number;
+  families_total: number;
+}
+
+/** Shapes mirror `/api/v1/method/*` exactly — verified against the live
+ *  response rather than assumed, because the Method drawer's entire purpose is
+ *  that the interface cannot disagree with the engine. */
+export interface Ladder {
+  levels: string[];
+  ceiling: string;
+  refused: Record<string, string>;
+  n3_paths: Record<string, string>;
+}
+
+export interface Weights {
+  engine_version: string;
+  config_fingerprint: string;
+  families: string[];
+  independent_families: string[];
+  weights: Record<string, number>;
+  weight_sum: number;
+  formula: Record<string, string>;
+}
+
+export const fetchClaims = (): Promise<RegisterRow[]> => get("/api/v1/claims");
+
+export const fetchEvidence = (claimId: number): Promise<EvidenceTree> =>
+  get(`/api/v1/claims/${claimId}/evidence`);
+
+export const fetchLadder = (): Promise<Ladder> => get("/api/v1/method/ladder");
+
+export const fetchWeights = (): Promise<Weights> => get("/api/v1/method/weights");

@@ -1,4 +1,4 @@
-.PHONY: up down seed series terrain web web-check test test-db golden purity lint fmt demo verify-endpoints examples vocab migrate check bench verify-datasets measure-windows
+.PHONY: up down seed seed-golden series terrain web web-check test test-db golden purity lint fmt demo verify-endpoints examples vocab migrate check bench verify-datasets measure-windows
 
 up:
 	docker compose up --build
@@ -10,6 +10,12 @@ down:
 # `data/demo/temporal_series.json`, built by `make series` (needs credentials).
 seed:
 	docker compose exec api python scripts/seed_demo.py
+
+# Seeds the 23 golden cases into the register as badged synthetic claims, so the
+# console demonstrates all eight epistemic levels. Every row is stamped
+# `provenance: golden` and rendered with a badge at chip size.
+seed-golden:
+	cd backend && uv run --with pyyaml --with pytest python ../scripts/seed_golden.py
 
 # Rebuilds the measured seasonal index series from real NASA HLS granules.
 # Needs EARTHDATA_TOKEN and network; not part of `check`, same rule as

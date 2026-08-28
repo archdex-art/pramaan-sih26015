@@ -1,0 +1,303 @@
+/* PRAMAAN design tokens — see docs/14-ui-design-system.md
+ *
+ * Direction: "Survey Record". The interface should look like a government
+ * evidence record, not a SaaS dashboard. Warm paper ground, serif body, mono for
+ * every number, hairlines instead of floating cards.
+ *
+ * Colour is reserved for the epistemic ladder. Nothing decorative is coloured,
+ * so when colour appears it means something.
+ */
+
+/* Self-hosted, latin + latin-ext only. Not loaded from a CDN: §38 requires the
+ * demo to survive the venue network being physically disconnected, and a webfont
+ * CDN call is exactly what turns into a fallback-to-Times failure on stage. */
+@font-face {
+  font-family: "Source Serif 4";
+  src: url("/fonts/source-serif-4-latin.woff2") format("woff2");
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Source Serif 4";
+  src: url("/fonts/source-serif-4-latin-ext.woff2") format("woff2");
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/fonts/jetbrains-mono-latin.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/fonts/jetbrains-mono-latin-ext.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+:root {
+  /* --- type ----------------------------------------------------------- */
+  --font-body: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --t-display: 28px;
+  --t-h1: 19px;
+  --t-h2: 15px;
+  --t-body: 14px;
+  --t-small: 12.5px;
+  --t-micro: 10.5px;
+  --t-figure: 22px;
+
+  /* --- paper and ink -------------------------------------------------- */
+  --paper: #faf8f4;
+  --paper-2: #fffdfa;
+  --paper-3: #f2eee7;
+  --ink: #1a1815;
+  --ink-2: #514b42;
+  /* Measured at 3.61:1 on --paper at the first attempt, not the 4.6:1 the
+   * design note claimed. Darkened to 5.01:1. It carries captions, uppercase
+   * mono labels and table headers, all of which are text and all of which need
+   * 4.5:1 — the non-text 3:1 threshold does not apply to any of them. */
+  --ink-3: #736a5e;
+  --rule: #e0d9ce;
+  --rule-2: #cfc6b8;
+
+  /* --- the epistemic ladder ------------------------------------------
+   * A gradient, not a traffic light. L1 is nearly grey because L1 nearly
+   * says nothing — a user should feel the claim weakening before reading
+   * the label. Green appears ONLY here, and only for L2-L4. */
+  --l4: #1f5c42;
+  --l3: #2f6b52;
+  --l2: #42705c;
+  --l1: #5e6b60;
+  --l0: #7a756c;
+  /* The DB recommendation adjusted this to 3:1, which is the *non-text*
+   * contrast threshold. Chip text is text: white on #b07d1e measured 3.62:1.
+   * Darkened to 4.89:1. */
+  --n1: #96681a;
+  --n2: #a85d24;
+  --n3: #92321f;
+
+  /* --- functional ----------------------------------------------------- */
+  --accent: #8a5a2b;
+  --accent-soft: #f3ebe0;
+  --warn-bg: #fbf3e0;
+  --warn-edge: #96681a;
+  --agree: #2f6b52;
+  --disagree: #92321f;
+
+  /* --- space (density 8) ---------------------------------------------- */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  --s7: 48px;
+
+  --radius-sm: 3px;
+  --radius: 6px;
+  --shadow-overlay: 0 12px 40px rgb(26 24 21 / 14%);
+
+  --rail-w: 196px;
+  --content-max: 1320px;
+
+  /* --- motion (dial 3, subtle) ---------------------------------------- */
+  --ease: cubic-bezier(0.2, 0.6, 0.2, 1);
+  --dur-fast: 160ms;
+  --dur: 260ms;
+  --dur-ring: 520ms;
+}
+
+/* An officer reading a verdict should not have things moving around them. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur: 0ms;
+    --dur-ring: 0ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0ms !important;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--t-body);
+  line-height: 1.55;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Every number in this product is evidence, and evidence should be alignable
+ * down a column. */
+.mono,
+code,
+kbd,
+samp {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "zero" 1;
+}
+
+/* Keyboard focus must stay visible — removing focus rings is the first item on
+ * the accessibility checklist for a reason. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+button,
+a {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* --- shared primitives ------------------------------------------------ */
+
+.label {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.rule {
+  border: 0;
+  border-top: 1px solid var(--rule);
+  margin: var(--s4) 0;
+}
+
+/* Documents have rules; apps have drop shadows. One shadow token exists and it
+ * is used only for the Method drawer. */
+.panel {
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+/* Level chips. Colour + text, never colour alone — the chart-and-data rule
+ * applies to chips too: a reader who cannot distinguish the hues still gets
+ * the level from the word. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: 3px 9px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #fff;
+  border: 1px solid transparent;
+}
+
+.chip[data-level^="L4"] { background: var(--l4); }
+.chip[data-level^="L3"] { background: var(--l3); }
+.chip[data-level^="L2"] { background: var(--l2); }
+.chip[data-level^="L1"] { background: var(--l1); }
+.chip[data-level^="L0"] { background: var(--l0); }
+.chip[data-level^="N1"] { background: var(--n1); }
+.chip[data-level^="N2"] { background: var(--n2); }
+.chip[data-level^="N3"] { background: var(--n3); }
+
+.chip.ghost {
+  background: transparent;
+  color: var(--ink-2);
+  border-color: var(--rule-2);
+}
+
+/* Synthetic data is badged at chip size, not in a footnote. A screenshot
+ * forwarded without context must still say what it is. */
+.badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid;
+}
+
+.badge[data-prov="measured"] {
+  color: #26543f;
+  border-color: #a8c8b4;
+  background: #eaf2ec;
+}
+
+.badge[data-prov="golden"] {
+  color: #6d5316;
+  border-color: var(--warn-edge);
+  background: var(--warn-bg);
+}
+
+/* One page-load reveal, staggered. The single scripted motion in the product. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rise {
+  animation: rise var(--dur) var(--ease) both;
+}
+
+.rise:nth-child(1) { animation-delay: 0ms; }
+.rise:nth-child(2) { animation-delay: 40ms; }
+.rise:nth-child(3) { animation-delay: 80ms; }
+.rise:nth-child(4) { animation-delay: 120ms; }
+.rise:nth-child(5) { animation-delay: 160ms; }
+.rise:nth-child(6) { animation-delay: 200ms; }

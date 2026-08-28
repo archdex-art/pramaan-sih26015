@@ -1,0 +1,240 @@
+/* S7 chart styles, retargeted onto the Survey Record tokens.
+ * Season lines: rabi carries the analysis (weight 1.0, 75 % of scenes
+ * usable), summer is real but thinner, so it reads secondary. Distinct in
+ * weight and dash, not only in hue — the chart must survive being printed
+ * in grey in an Evidence Pack. */
+
+/* --- chart ------------------------------------------------------------ */
+
+.chart {
+  margin: 20px 0 0;
+  padding: 8px 12px 4px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.chart svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+.site-line {
+  fill: none;
+  stroke: var(--l4);
+  stroke-width: 2.6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.site-dot {
+  fill: var(--l4);
+  stroke: #fff;
+  stroke-width: 1.5;
+  cursor: pointer;
+}
+
+.ribbon-area {
+  fill: var(--accent);
+  opacity: 0.28;
+}
+
+.ribbon-median {
+  stroke: var(--accent);
+  stroke-width: 1.4;
+}
+
+/* Provisional ribbon: dashed outline and lighter fill, so it cannot be mistaken
+   for a matched-control band. */
+.ribbon.provisional .ribbon-area {
+  /* Faint but not invisible. Provisional must read as "less certain", not as
+     "absent" - an unreadable band cannot be judged at all. */
+  opacity: 0.2;
+  stroke: var(--accent);
+  stroke-width: 1.2;
+  stroke-dasharray: 5 4;
+}
+
+.ribbon.provisional .ribbon-median {
+  stroke-dasharray: 4 4;
+}
+
+.ribbon-label {
+  font-weight: 600;
+}
+
+.ribbon-label,
+.band-label,
+.claim-label,
+.suff-label {
+  font-size: 10px;
+  fill: var(--ink-2);
+}
+
+.band-label {
+  fill: #8a6a3a;
+  font-weight: 600;
+}
+
+.claim-line {
+  stroke: var(--ink);
+  stroke-width: 1.4;
+  stroke-dasharray: 4 3;
+  opacity: 0.65;
+}
+
+.claim-label {
+  font-weight: 600;
+  fill: var(--ink);
+}
+
+.axis text {
+  font-size: 10px;
+  fill: var(--ink-2);
+}
+
+.axis-title {
+  font-size: 11px;
+  fill: var(--ink);
+  font-weight: 600;
+}
+
+.gridline {
+  stroke: var(--rule);
+  stroke-width: 1;
+  opacity: 0.7;
+}
+
+.axis-line {
+  stroke: var(--ink-2);
+  stroke-width: 1;
+}
+
+.suff-bar {
+  fill: #9fb3c4;
+}
+
+/* Below the sufficiency floor the composite was rejected — flagged, not shaded
+   the same as a good season. */
+.suff-bar.low {
+  fill: var(--warn-edge);
+}
+
+figcaption {
+  padding: 8px 4px 6px;
+}
+
+figcaption p {
+  margin: 4px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+figcaption .warn {
+  padding: 8px 10px;
+  background: var(--warn-bg);
+  border-left: 3px solid var(--warn-edge);
+  color: #6d5316;
+}
+
+/* --- states ----------------------------------------------------------- */
+
+.error,
+.chart-empty {
+  margin: 20px 0;
+  padding: 14px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.error {
+  background: var(--error-bg);
+  border-left: 3px solid var(--error-edge);
+  color: #7d271f;
+}
+
+.chart-empty {
+  background: #f4f5f7;
+  border-left: 3px solid var(--ink-2);
+}
+
+.loading {
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+/* --- hover card ------------------------------------------------------- */
+
+.hover-card {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  max-width: 340px;
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgb(27 36 48 / 12%);
+  font-size: 12px;
+}
+
+.hover-head {
+  font-weight: 700;
+  text-transform: capitalize;
+  margin-bottom: 6px;
+}
+
+.hover-card dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 12px;
+  margin: 0 0 8px;
+}
+
+.hover-card dt {
+  color: var(--ink-2);
+}
+
+.hover-card dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.scene-ids {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  color: var(--ink-2);
+  line-height: 1.45;
+  word-break: break-all;
+}
+
+/* One line per season. Rabi carries the analysis (weight 1.0, 75 % of scenes
+   usable); summer is real but thinner, so it reads secondary rather than
+   competing. Distinct in weight and dash, not only in hue — the chart has to
+   survive being printed in grey in an Evidence Pack. */
+.site.season-rabi .site-line {
+  stroke: var(--l4);
+  stroke-width: 2.8;
+}
+
+.site.season-summer .site-line {
+  stroke: #7a6b52;
+  stroke-width: 1.9;
+  stroke-dasharray: 7 3;
+}
+
+.season-label {
+  font-size: 10px;
+  font-weight: 600;
+  fill: var(--ink-2);
+  text-transform: capitalize;
+}
+
+.site.season-rabi .season-label { fill: var(--l4); }
+.site.season-summer .season-label { fill: #7a6b52; }
