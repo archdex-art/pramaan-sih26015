@@ -100,6 +100,30 @@ def build_dissent(
             f"not this work in isolation."
         )
 
+    # --- 3b. Scene-scale limitation (docs §16.2 STEP 5).
+    #
+    # The photo producer already attenuates a close-up's agreement, but that
+    # happens upstream and a *positive* verdict never surfaces an agreeing
+    # family as counter-evidence. So without this entry the officer would see a
+    # corroborated verdict with no indication that the photograph it rests on
+    # was a detail shot. An attenuated frame is a data limitation, and STEP 11
+    # requires every data limitation to be stated.
+    if bundle.gates.scene_scale in ("close_up", "unknown"):
+        photo = bundle.get("photo")
+        if photo is not None and photo.available:
+            descriptor = (
+                "a close-up detail frame"
+                if bundle.gates.scene_scale == "close_up"
+                else "a frame whose scale could not be determined"
+            )
+            entries.append(
+                f"The photograph is {descriptor}, so it cannot be cross-checked "
+                f"against a 30 m pixel: it evidences that something consistent "
+                f"with the claim existed at capture time, but not its extent, "
+                f"persistence, or position within the location uncertainty disk. "
+                f"Its contribution was attenuated accordingly before scoring."
+            )
+
     # --- 4. Type-level ceiling and non-assessability.
     if not signature.optically_assessable:
         entries.append(

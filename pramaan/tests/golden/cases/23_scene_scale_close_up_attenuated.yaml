@@ -1,0 +1,57 @@
+# The scene-scale gate (docs §16.2 STEP 5), which was specified in the design
+# document and enforced nowhere until the photo producer landed: `scene_scale`
+# was written into a verdict's lineage and then ignored.
+#
+# Scenario: a genuine check dam, but the field officer photographed a close-up
+# of the spillway with water running over it. The photograph is honest and the
+# structure is real. It simply cannot be cross-checked against a 900 m2 pixel,
+# so its agreement is attenuated to 0.4x by the producer (1.00 -> 0.40) and the
+# dissent panel records why.
+#
+# The independent families still carry the claim to L3. That is the point of the
+# gate: it neither discards an honest close-up nor lets one substitute for
+# site-scale evidence.
+claim_id: GOLD-23-CLOSEUP-SPILLWAY
+intervention_type: check_dam
+gates:
+  detectability_passed: true
+  expected_footprint_m2: 3200
+  pixel_area_m2: 900
+  escalated_to_cluster: false
+  scene_scale: close_up
+  terrain_plausibility: plausible
+quality:
+  metadata_integrity: 0.92
+  data_sufficiency: 0.80
+families:
+  - {family: terrain,   agreement:  1.0, reason: "Strahler order 3, slope 2.4 deg, dist-to-stream 11 m"}
+  - {family: satellite, agreement:  0.9, reason: "post-monsoon MNDWI at site disk -0.05 to +0.24"}
+  - {family: temporal,  agreement:  0.8, reason: "water persistence 3 to 6 months/yr across 2 seasons"}
+  - {family: control,   agreement:  0.0, available: false, reason: "matched control pool returned 4 sites, below the minimum of 5"}
+  # 0.40 = raw 1.00 x CLOSE_UP_ATTENUATION 0.40, applied by
+  # app.services.photo.evidence because the frame cannot be satellite-corroborated.
+  - {family: photo,     agreement:  0.4, reason: "water_present 0.94 and masonry_check_dam 0.88; scene-scale gate applied (0.40x): close-up frame evidences existence at capture time but cannot speak to extent or persistence and cannot be cross-checked against a 30 m pixel"}
+  - {family: context,   agreement:  0.5, reason: "rainfall 1.04x decadal mean"}
+expect:
+  level: L3_multi_indicator
+  label: CORROBORATED
+  # Arithmetic below is the engine's, not hand-computed. A first draft of this
+  # case used w=0.05 for context instead of the frozen 0.08 and asserted
+  # score 0.7300 — the same class of error as defect D2, caught here by the
+  # suite instead of by a judge.
+  #   support      = .25(1.0) + .20(0.9) + .20(0.8) + .12(0.4) + .08(0.5) = 0.6780
+  #   weight_total = 0.85 (control unavailable)
+  #   score        = 0.6780 / 0.85            = 0.7976
+  #   coverage     = 0.85
+  #   quality      = 0.92 x 0.80              = 0.7360
+  #   confidence   = 0.7976 x 0.85 x 0.7360   = 0.4990
+  score: 0.7976
+  coverage: 0.85
+  confidence: 0.4990
+  action: no_action
+  rule_path_contains: [L3_MULTI_INDICATOR]
+  rule_path_excludes: [L4_CONTROL_DIFFERENCED, N3_SATELLITE_PATH, N3_TERRAIN_PATH]
+  dissent_contains:
+    - "cannot be cross-checked against a 30 m pixel"
+    - "unavailable: control"
+    - "not a causal claim"

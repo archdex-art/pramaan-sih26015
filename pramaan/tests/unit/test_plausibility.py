@@ -605,3 +605,53 @@ def test_no_rule_declares_a_field_that_evaluate_ignores() -> None:
     }
     unread = declared - read_attrs
     assert not unread, f"TerrainRule fields declared but never read by evaluate(): {unread}"
+
+
+def test_terrain_path_requires_cluster_scale_evidence_to_exist() -> None:
+    """Escalated to cluster, but no family was actually computed at cluster scale.
+
+    Covers the `no_cluster_scale_evidence` guard: the gate said "assess as a
+    cluster" and nothing came back at that scale, so there is nothing to weigh
+    against the terrain rule and N3_TERRAIN_PATH must refuse to fire.
+    """
+    from app.services.reconcile.types import Quality as Q
+
+    b = EvidenceBundle(
+        claim_id="ESCALATED-BUT-EMPTY",
+        intervention_type="farm_pond",
+        families=(
+            FamilyEvidence(
+                family="terrain",
+                agreement=-1.0,
+                available=True,
+                reason="order 0, 310 m from any drainage line",
+            ),
+            # available, but NOT cluster_scale
+            FamilyEvidence(
+                family="photo",
+                agreement=0.3,
+                available=True,
+                reason="excavation visible",
+            ),
+        ),
+        gates=evidence.to_gates(
+            detectability.evaluate(
+                "farm_pond", expected_footprint_m2=625.0, cluster_member_count=4
+            ),
+            evaluate(
+                "farm_pond",
+                sample(
+                    slope_deg=6.4,
+                    strahler=0.0,
+                    flow_acc=12.0,
+                    dist_stream=340.0,
+                    in_depression=False,
+                ),
+            ),
+        ),
+        quality=Q(metadata_integrity=0.85, data_sufficiency=0.75),
+        alternatives=(Alternative(description="never filled", excluded=True, basis="checked"),),
+    )
+    v = reconcile(b)
+    assert "N3_TERRAIN_PATH" not in v.rule_path
+    assert "n3_terrain_blocked_by=no_cluster_scale_evidence" in v.rule_path
