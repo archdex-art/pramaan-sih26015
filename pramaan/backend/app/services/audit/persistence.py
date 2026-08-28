@@ -70,15 +70,22 @@ def wire_payload(bundle: EvidenceBundle, cfg: EngineConfig | None = None) -> dic
     column**, so `bundle_from_lineage` and `config_from_lineage` consume it
     unchanged and there is one structure with one set of tests.
 
-    `family_reasons` is carried explicitly because `bundle_payload` excludes
-    prose on purpose - improving an error message must not change a digest. Drop
-    it and the persisted evidence rows lose their reason text, which is what the
-    UI's evidence tree displays.
+    `family_reasons` and `family_lineage` are carried explicitly because
+    `bundle_payload` excludes both on purpose: neither is decision-bearing, and
+    rewording an error message or adding a scene id must not change a digest.
+
+    Both still have to cross the broker. Drop the reasons and the persisted
+    evidence rows lose the text the UI's evidence tree displays; drop the
+    lineage and they lose the scene ids, analysis grid and index versions that
+    docs §21.3 requires in the Evidence Pack. Both were dropped in a first
+    draft, and the second one surfaced as `evidence.lineage = {}` on a real
+    seeded claim.
     """
     cfg = cfg or EngineConfig()
     return {
         "bundle": bundle_payload(bundle, cfg),
         "family_reasons": {f.family: f.reason for f in bundle.families},
+        "family_lineage": {f.family: dict(f.lineage) for f in bundle.families},
     }
 
 
@@ -105,6 +112,7 @@ def verdict_row(
         # analysis grid. Prose reasons live here too, for the Evidence Pack.
         "producers": verdict.lineage,
         "family_reasons": {f.family: f.reason for f in bundle.families},
+        "family_lineage": {f.family: dict(f.lineage) for f in bundle.families},
         "dissent": list(verdict.dissent),
     }
     if extra_lineage:
@@ -174,14 +182,15 @@ def _require(payload: dict[str, Any], key: str, context: str) -> Any:
 def bundle_from_lineage(lineage: dict[str, Any]) -> EvidenceBundle:
     """Rebuild the exact engine input from a stored lineage record.
 
-    Reasons are restored from `family_reasons` where available. They do not
-    affect the verdict — they are excluded from the digest for exactly that
-    reason — but `FamilyEvidence` requires a non-empty reason, and a recompute
-    that had to invent placeholder prose would produce an Evidence Pack that
-    reads differently from the original.
+    Reasons and per-family lineage are restored from `family_reasons` and
+    `family_lineage` where available. Neither affects the verdict — both are
+    excluded from the digest for exactly that reason — but `FamilyEvidence`
+    requires a non-empty reason, and an Evidence Pack rebuilt without the
+    producers' provenance would read as if nothing had been recorded.
     """
     stored = _require(lineage, "bundle", "lineage")
     reasons: dict[str, str] = lineage.get("family_reasons", {}) or {}
+    lineages: dict[str, dict[str, Any]] = lineage.get("family_lineage", {}) or {}
 
     families = tuple(
         FamilyEvidence(
@@ -189,7 +198,7 @@ def bundle_from_lineage(lineage: dict[str, Any]) -> EvidenceBundle:
             agreement=float(_require(f, "agreement", "bundle.families[]")),
             available=bool(_require(f, "available", "bundle.families[]")),
             reason=reasons.get(f["family"], "reason not retained in lineage"),
-            lineage={},
+            lineage=dict(lineages.get(f["family"], {})),
             cluster_scale=bool(f.get("cluster_scale", False)),
         )
         for f in _require(stored, "families", "bundle")

@@ -360,3 +360,84 @@ def test_wire_payload_records_the_config_fingerprint() -> None:
     )
     with pytest.raises(LineageIncomplete, match="does not match the current"):
         config_from_lineage(drifted)
+
+
+def test_wire_payload_carries_per_family_lineage() -> None:
+    """Scene ids, analysis grid and index versions must reach the evidence rows.
+
+    `bundle_payload` excludes family lineage on purpose - adding a scene id must
+    not change a digest. But it still has to cross the broker: a first draft
+    dropped it, and a real seeded claim landed with `evidence.lineage = {}`,
+    losing exactly the provenance docs §21.3 requires in the Evidence Pack.
+    """
+    from app.services.audit import wire_payload
+
+    b = bundle(
+        families=(
+            fam("satellite", 0.8),
+            fam("temporal", 0.5),
+        )
+    )
+    b = type(b)(
+        claim_id=b.claim_id,
+        intervention_type=b.intervention_type,
+        families=tuple(
+            type(f)(
+                family=f.family,
+                agreement=f.agreement,
+                available=f.available,
+                reason=f.reason,
+                lineage={"scene_ids": [f"SCENE-{f.family}"], "grid": {"epsg": 32643}},
+                cluster_scale=f.cluster_scale,
+            )
+            for f in b.families
+        ),
+        gates=b.gates,
+        quality=b.quality,
+        alternatives=b.alternatives,
+    )
+
+    wire = wire_payload(b)
+    assert wire["family_lineage"]["satellite"]["scene_ids"] == ["SCENE-satellite"]
+
+    rebuilt = bundle_from_lineage(wire)
+    by_family = {f.family: f for f in rebuilt.families}
+    assert by_family["satellite"].lineage["scene_ids"] == ["SCENE-satellite"]
+    assert by_family["temporal"].lineage["grid"] == {"epsg": 32643}
+
+    # And it must not have leaked into the digest-bearing half.
+    assert "scene_ids" not in json.dumps(wire["bundle"])
+
+
+def test_evidence_rows_carry_the_restored_family_lineage() -> None:
+    from app.services.audit import wire_payload
+
+    b = bundle(families=(fam("satellite", 0.8),))
+    b = type(b)(
+        claim_id=b.claim_id,
+        intervention_type=b.intervention_type,
+        families=(
+            type(b.families[0])(
+                family="satellite",
+                agreement=0.8,
+                available=True,
+                reason="measured",
+                lineage={"scene_ids": ["HLS.S30.T43QGB.2024311T052011.v2.0"]},
+            ),
+        ),
+        gates=b.gates,
+        quality=b.quality,
+        alternatives=b.alternatives,
+    )
+    rebuilt = bundle_from_lineage(wire_payload(b))
+    row = evidence_rows(rebuilt, claim_id=1, district_lgd="520")[0]
+    assert row["lineage"]["scene_ids"] == ["HLS.S30.T43QGB.2024311T052011.v2.0"]
+
+
+def test_a_lineage_without_family_lineage_still_recomputes() -> None:
+    """Rows written before family lineage was carried must remain usable: the
+    field is provenance, not a decision input."""
+    b, v = built(families=all_agreeing(1.0))
+    lineage = verdict_row(v, b, claim_id=1, version=1)["lineage"]
+    del lineage["family_lineage"]
+    assert compare_verdicts(v, reconcile(bundle_from_lineage(lineage))).identical

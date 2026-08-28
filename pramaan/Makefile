@@ -1,4 +1,4 @@
-.PHONY: up down seed test test-db golden purity lint fmt demo verify-endpoints examples vocab migrate check bench verify-datasets measure-windows
+.PHONY: up down seed series test test-db golden purity lint fmt demo verify-endpoints examples vocab migrate check bench verify-datasets measure-windows
 
 up:
 	docker compose up --build
@@ -6,8 +6,17 @@ up:
 down:
 	docker compose down -v
 
+# Seeds the demo claim from measured HLS data. Requires
+# `data/demo/temporal_series.json`, built by `make series` (needs credentials).
 seed:
 	docker compose exec api python scripts/seed_demo.py
+
+# Rebuilds the measured seasonal index series from real NASA HLS granules.
+# Needs EARTHDATA_TOKEN and network; not part of `check`, same rule as
+# verify-endpoints. ~4 minutes for 10 season-windows over the demo AOI.
+series:
+	uv run --with httpx --with rasterio --with numpy --with pyproj \
+		python scripts/build_temporal_series.py
 
 test:
 	cd backend && uv run pytest ../tests/unit ../tests/integration -q
