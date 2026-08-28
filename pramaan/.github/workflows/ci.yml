@@ -113,6 +113,23 @@ jobs:
           PRAMAAN_TEST_DSN: host=127.0.0.1 port=5432 user=postgres password=t dbname=t
         run: uv run --with 'psycopg[binary]' pytest ../tests/integration -q
 
+  frontend:
+    # Typecheck only. The chart is verified by driving it in a browser, which is
+    # the right proof for a visual claim; a snapshot test would pin pixels and
+    # break on every legitimate design change without checking readability.
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - run: npx tsc -b --noEmit
+      - run: npm run build
+
   vocabulary-lint:
     # W6 fix (docs §37): the system must never emit accusatory language.
     # Enforced as a CI rule, not a style guideline.

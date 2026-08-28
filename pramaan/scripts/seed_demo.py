@@ -351,6 +351,23 @@ def build_bundle(data: dict[str, Any], cmps: list[Comparison]) -> EvidenceBundle
                 theil_sen_slope(rabi_values, np.arange(len(rabi_values), dtype=float)),
                 4,
             ),
+            # The full observed series, not just the paired deltas. The S7 chart
+            # draws every season; the deltas alone would give it two points and
+            # no line. Provenance, not a decision input - the engine never
+            # reads this.
+            "observed_series": [
+                {
+                    "year": e["year"],
+                    "season": e["season"],
+                    "site": e["indices"][INDEX]["site"],
+                    "controls": e["indices"][INDEX]["controls"],
+                    "usable_fraction": e["indices"][INDEX]["valid_fraction"],
+                    "n_scenes": len(e["scenes"]),
+                    "scene_ids": [s["id"] for s in e["scenes"]],
+                }
+                for e in series
+            ],
+            "windows": build_windows(date.fromisoformat(data["claim_date"])).lineage(),
         },
     )
 

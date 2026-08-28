@@ -79,8 +79,7 @@ class IndexObservation:
     def __post_init__(self) -> None:
         if not 0.0 <= self.usable_fraction <= 1.0:
             raise ValueError(
-                f"{self.index_name}: usable_fraction {self.usable_fraction} "
-                "outside [0, 1]"
+                f"{self.index_name}: usable_fraction {self.usable_fraction} outside [0, 1]"
             )
         if self.n_scenes < 0:
             raise ValueError(f"{self.index_name}: n_scenes cannot be negative")

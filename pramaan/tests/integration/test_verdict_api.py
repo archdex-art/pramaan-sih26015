@@ -469,3 +469,147 @@ def test_api_label_matches_the_engine_not_a_reimplementation(claim_id: int, case
         "the API must derive the label the same way the engine does"
     )
     assert body["label"] == expected_label
+
+
+# --- the temporal endpoint (S7's data) -----------------------------------
+
+
+def _seed_temporal(claim_id: int) -> int:
+    """Reconcile a claim whose temporal family carries an observed series."""
+    from conftest import bundle as make_bundle
+    from conftest import fam
+
+    from app.services.audit import wire_payload
+    from app.services.reconcile import EvidenceBundle, FamilyEvidence
+    from app.workers.reconcile import reconcile_claim
+
+    base = make_bundle(families=(fam("temporal", 0.8),))
+    temporal = FamilyEvidence(
+        family="temporal",
+        agreement=0.8,
+        available=True,
+        reason="measured",
+        lineage={
+            "index": "NDVI",
+            "n_scenes": 39,
+            "provenance": "NASA HLS v2.0 via CMR STAC",
+            "kharif": "excluded: 0-5 usable scenes per year, measured",
+            "windows": {"pre_end": "2023-08-20", "post_start": "2024-02-20"},
+            "trends": {
+                "NDVI": {
+                    "direction": "no trend",
+                    "insufficient": False,
+                    "n": 5,
+                    "p_value": 0.462,
+                    "slope_per_year": 0.0278,
+                    "min_points_required": 5,
+                }
+            },
+            "observed_series": [
+                {
+                    "year": 2023,
+                    "season": "rabi",
+                    "site": 0.4916,
+                    "controls": [0.41, 0.44],
+                    "usable_fraction": 1.0,
+                    "n_scenes": 4,
+                    "scene_ids": ["HLS.S30.T43QGB.2024311T052011.v2.0"],
+                },
+                {
+                    "year": 2025,
+                    "season": "rabi",
+                    "site": 0.6368,
+                    "controls": [0.55, 0.57],
+                    "usable_fraction": 1.0,
+                    "n_scenes": 4,
+                    "scene_ids": [],
+                },
+            ],
+            "pairings": [
+                {
+                    "season": "rabi",
+                    "pre_year": 2023,
+                    "post_year": 2025,
+                    "site_delta": 0.1452,
+                    "control_median_delta": 0.1242,
+                    "control_p10": 0.0642,
+                    "control_p90": 0.1908,
+                    "differenced_estimate": 0.021,
+                    "site_inside_control_band": True,
+                    "n_controls": 8,
+                    "control_basis": "fixed 1.2 km ring; NOT covariate-matched",
+                }
+            ],
+        },
+    )
+    b = EvidenceBundle(
+        claim_id=base.claim_id,
+        intervention_type=base.intervention_type,
+        families=(temporal,),
+        gates=base.gates,
+        quality=base.quality,
+        alternatives=base.alternatives,
+    )
+    return int(reconcile_claim(claim_id, wire_payload(b))["verdict_id"])
+
+
+def test_temporal_endpoint_serves_the_stored_series(claim_id: int) -> None:
+    """The chart's data comes from stored evidence, never recomputed on read.
+
+    Recomputing would let the chart and the verdict card beside it disagree,
+    both correct for different inputs.
+    """
+    _seed_temporal(claim_id)
+    r = _client().get(f"/api/v1/claims/{claim_id}/temporal")
+    assert r.status_code == 200, r.text
+    body = r.json()
+
+    assert body["index"] == "NDVI"
+    assert len(body["series"]) == 2
+    assert body["series"][0]["site"] == pytest.approx(0.4916)
+    assert body["series"][0]["scene_ids"] == ["HLS.S30.T43QGB.2024311T052011.v2.0"]
+    assert body["n_scenes_total"] == 39
+    assert body["trend"]["direction"] == "no trend"
+    assert body["windows"]["pre_end"] == "2023-08-20"
+    assert "kharif" in body["excluded_seasons"]
+
+
+def test_temporal_endpoint_reports_the_control_caveat(claim_id: int) -> None:
+    """`control_available` and `control_basis` travel with the ribbon.
+
+    A shaded band that looks like matched controls but is not would claim more
+    than the data supports, so the caveat has to reach the chart - not sit in
+    the lineage where only an auditor would find it.
+    """
+    _seed_temporal(claim_id)
+    body = _client().get(f"/api/v1/claims/{claim_id}/temporal").json()
+    assert body["control_available"] is False
+    assert "NOT covariate-matched" in body["control_basis"]
+    assert len(body["bands"]) == 1
+    assert body["bands"][0]["site_inside_control_band"] is True
+    assert body["bands"][0]["differenced_estimate"] == pytest.approx(0.021)
+
+
+def test_temporal_endpoint_404s_for_an_unknown_claim() -> None:
+    assert _client().get("/api/v1/claims/99999999/temporal").status_code == 404
+
+
+def test_temporal_endpoint_404s_when_reconciliation_has_not_run(claim_id: int) -> None:
+    """Distinct from an empty chart: nothing has been computed yet, and the
+    message must say which of the two it is."""
+    r = _client().get(f"/api/v1/claims/{claim_id}/temporal")
+    assert r.status_code == 404
+    assert "no temporal evidence" in r.json()["detail"]
+
+
+def test_temporal_endpoint_422s_when_the_series_was_not_retained(claim_id: int) -> None:
+    """An empty ribbon over an empty axis reads as "nothing happened", which is
+    a different claim from "not recorded". So this refuses rather than draws."""
+    from conftest import all_agreeing
+
+    from app.workers.reconcile import reconcile_claim
+
+    reconcile_claim(claim_id, _payload(families=all_agreeing(1.0)))
+    r = _client().get(f"/api/v1/claims/{claim_id}/temporal")
+    assert r.status_code == 422
+    assert "no observed series" in r.json()["detail"]

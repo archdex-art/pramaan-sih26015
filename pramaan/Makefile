@@ -1,4 +1,4 @@
-.PHONY: up down seed series test test-db golden purity lint fmt demo verify-endpoints examples vocab migrate check bench verify-datasets measure-windows
+.PHONY: up down seed series web web-check test test-db golden purity lint fmt demo verify-endpoints examples vocab migrate check bench verify-datasets measure-windows
 
 up:
 	docker compose up --build
@@ -86,6 +86,13 @@ vocab:
 
 migrate:
 	docker compose run --rm migrate
+
+# Frontend dev server. Proxies /api to 127.0.0.1:8000, so run the API first.
+web:
+	cd frontend && npm install && npm run dev
+
+web-check:
+	cd frontend && npm ci && npx tsc -b --noEmit && npm run build
 
 # Everything CI runs, in CI's order. Run this before pushing.
 check: lint

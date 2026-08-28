@@ -1,0 +1,401 @@
+/* S7 styling.
+ *
+ * Restrained on purpose. The chart carries the argument; chrome that competes
+ * with it makes a Collector work harder to read the one line that matters.
+ * Colour is used for meaning only — level, dissent, and the provisional state.
+ */
+
+:root {
+  --ink: #1b2430;
+  --ink-soft: #5a6672;
+  --rule: #d7dde3;
+  --paper: #fbfcfd;
+  --site: #14304f;
+  --ribbon: #7fa8c9;
+  --warn-bg: #fdf6e6;
+  --warn-edge: #d9a441;
+  --error-bg: #fdeceb;
+  --error-edge: #c0392b;
+  font-family:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+main {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+}
+
+/* --- masthead ---------------------------------------------------------- */
+
+.masthead h1 {
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  margin: 0 0 4px;
+}
+
+.masthead .sub {
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.claim-id {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- verdict header --------------------------------------------------- */
+
+.verdict {
+  margin: 24px 0 8px;
+  padding: 18px 20px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.verdict-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.chip {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+/* Level chips: warmer as the level weakens, never green-for-good. A green
+   "verified" chip is exactly the overclaim the epistemic ladder exists to
+   prevent. */
+.chip.level-l4 { background: #e7f1e9; border-color: #a8c8b0; color: #24513a; }
+.chip.level-l3 { background: #eaf0ee; border-color: #b3c6c0; color: #2d4d46; }
+.chip.level-l2 { background: #eef1f4; border-color: #bfc9d3; color: #35485c; }
+.chip.level-l1 { background: #f2f3f5; border-color: #c9ced6; color: #45505d; }
+.chip.level-l0 { background: #f5f5f5; border-color: #d5d5d5; color: #5b5b5b; }
+.chip.level-n1 { background: #f6f2ea; border-color: #d3c3a3; color: #6b5a34; }
+.chip.level-n2 { background: #f9efe6; border-color: #dcb391; color: #7a4c25; }
+.chip.level-n3 { background: #fbeceb; border-color: #dfa39d; color: #8a2f28; }
+
+.chip.label {
+  background: #fff;
+  border-color: var(--rule);
+  color: var(--ink-soft);
+}
+
+.chip.provisional {
+  background: var(--warn-bg);
+  border-color: var(--warn-edge);
+  color: #7a5a12;
+}
+
+.metrics {
+  display: flex;
+  gap: 28px;
+  margin: 16px 0 0;
+  flex-wrap: wrap;
+}
+
+.metrics dt {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+}
+
+.metrics dd {
+  margin: 2px 0 0;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.dissent {
+  margin-top: 18px;
+  padding: 12px 14px;
+  border-left: 3px solid var(--warn-edge);
+  background: var(--warn-bg);
+  border-radius: 0 6px 6px 0;
+}
+
+.dissent h2 {
+  margin: 0 0 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #7a5a12;
+}
+
+.dissent ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.rule-path {
+  margin: 14px 0 0;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.rule-path code {
+  font-size: 11px;
+}
+
+/* --- chart ------------------------------------------------------------ */
+
+.chart {
+  margin: 20px 0 0;
+  padding: 8px 12px 4px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.chart svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+.site-line {
+  fill: none;
+  stroke: var(--site);
+  stroke-width: 2.6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.site-dot {
+  fill: var(--site);
+  stroke: #fff;
+  stroke-width: 1.5;
+  cursor: pointer;
+}
+
+.ribbon-area {
+  fill: var(--ribbon);
+  opacity: 0.28;
+}
+
+.ribbon-median {
+  stroke: var(--ribbon);
+  stroke-width: 1.4;
+}
+
+/* Provisional ribbon: dashed outline and lighter fill, so it cannot be mistaken
+   for a matched-control band. */
+.ribbon.provisional .ribbon-area {
+  /* Faint but not invisible. Provisional must read as "less certain", not as
+     "absent" - an unreadable band cannot be judged at all. */
+  opacity: 0.2;
+  stroke: var(--ribbon);
+  stroke-width: 1.2;
+  stroke-dasharray: 5 4;
+}
+
+.ribbon.provisional .ribbon-median {
+  stroke-dasharray: 4 4;
+}
+
+.ribbon-label {
+  font-weight: 600;
+}
+
+.ribbon-label,
+.band-label,
+.claim-label,
+.suff-label {
+  font-size: 10px;
+  fill: var(--ink-soft);
+}
+
+.band-label {
+  fill: #8a6a3a;
+  font-weight: 600;
+}
+
+.claim-line {
+  stroke: var(--ink);
+  stroke-width: 1.4;
+  stroke-dasharray: 4 3;
+  opacity: 0.65;
+}
+
+.claim-label {
+  font-weight: 600;
+  fill: var(--ink);
+}
+
+.axis text {
+  font-size: 10px;
+  fill: var(--ink-soft);
+}
+
+.axis-title {
+  font-size: 11px;
+  fill: var(--ink);
+  font-weight: 600;
+}
+
+.gridline {
+  stroke: var(--rule);
+  stroke-width: 1;
+  opacity: 0.7;
+}
+
+.axis-line {
+  stroke: var(--ink-soft);
+  stroke-width: 1;
+}
+
+.suff-bar {
+  fill: #9fb3c4;
+}
+
+/* Below the sufficiency floor the composite was rejected — flagged, not shaded
+   the same as a good season. */
+.suff-bar.low {
+  fill: var(--warn-edge);
+}
+
+figcaption {
+  padding: 8px 4px 6px;
+}
+
+figcaption p {
+  margin: 4px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+figcaption .warn {
+  padding: 8px 10px;
+  background: var(--warn-bg);
+  border-left: 3px solid var(--warn-edge);
+  color: #6d5316;
+}
+
+/* --- states ----------------------------------------------------------- */
+
+.error,
+.chart-empty {
+  margin: 20px 0;
+  padding: 14px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.error {
+  background: var(--error-bg);
+  border-left: 3px solid var(--error-edge);
+  color: #7d271f;
+}
+
+.chart-empty {
+  background: #f4f5f7;
+  border-left: 3px solid var(--ink-soft);
+}
+
+.loading {
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+/* --- hover card ------------------------------------------------------- */
+
+.hover-card {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  max-width: 340px;
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgb(27 36 48 / 12%);
+  font-size: 12px;
+}
+
+.hover-head {
+  font-weight: 700;
+  text-transform: capitalize;
+  margin-bottom: 6px;
+}
+
+.hover-card dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 12px;
+  margin: 0 0 8px;
+}
+
+.hover-card dt {
+  color: var(--ink-soft);
+}
+
+.hover-card dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.scene-ids {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  color: var(--ink-soft);
+  line-height: 1.45;
+  word-break: break-all;
+}
+
+/* One line per season. Rabi carries the analysis (weight 1.0, 75 % of scenes
+   usable); summer is real but thinner, so it reads secondary rather than
+   competing. Distinct in weight and dash, not only in hue — the chart has to
+   survive being printed in grey in an Evidence Pack. */
+.site.season-rabi .site-line {
+  stroke: var(--site);
+  stroke-width: 2.8;
+}
+
+.site.season-summer .site-line {
+  stroke: #7a6b52;
+  stroke-width: 1.9;
+  stroke-dasharray: 7 3;
+}
+
+.season-label {
+  font-size: 10px;
+  font-weight: 600;
+  fill: var(--ink-soft);
+  text-transform: capitalize;
+}
+
+.site.season-rabi .season-label { fill: var(--site); }
+.site.season-summer .season-label { fill: #7a6b52; }
