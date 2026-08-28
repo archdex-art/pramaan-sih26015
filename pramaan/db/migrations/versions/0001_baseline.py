@@ -409,7 +409,24 @@ DROP TYPE IF EXISTS intervention_type;
 DROP TYPE IF EXISTS project_phase;
 DROP TYPE IF EXISTS user_role;
 
-DROP ROLE IF EXISTS pramaan_app;
+-- Dropping the role needs care. `GRANT ... ON ALL TABLES IN SCHEMA public`
+-- above also granted on PostGIS's own `spatial_ref_sys`, which this migration
+-- did not create and therefore must not drop. That grant outlives every DROP
+-- TABLE above, and a bare `DROP ROLE` fails on it with
+-- "role cannot be dropped because some objects depend on it".
+-- Found by adding the reversibility check to CI, not by reading this file.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'pramaan_app') THEN
+    EXECUTE 'REVOKE ALL ON ALL TABLES IN SCHEMA public FROM pramaan_app';
+    EXECUTE 'REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM pramaan_app';
+    EXECUTE 'REVOKE ALL ON SCHEMA public FROM pramaan_app';
+    -- Catches anything the explicit REVOKEs missed, in this database only.
+    EXECUTE 'DROP OWNED BY pramaan_app';
+    EXECUTE 'DROP ROLE pramaan_app';
+  END IF;
+END
+$$;
 """
 
 

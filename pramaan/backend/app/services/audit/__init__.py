@@ -4,6 +4,13 @@ Separate from `reconcile` because the engine's import surface is deliberately
 minimal and asserted by a test. The engine decides; this layer attests.
 """
 
+from app.services.audit.persistence import (
+    LineageIncomplete,
+    bundle_from_lineage,
+    config_from_lineage,
+    evidence_rows,
+    verdict_row,
+)
 from app.services.audit.reproducibility import (
     DIGEST_VERSION,
     RecomputeResult,
@@ -17,6 +24,11 @@ from app.services.audit.reproducibility import (
 
 __all__ = [
     "DIGEST_VERSION",
+    "LineageIncomplete",
+    "bundle_from_lineage",
+    "config_from_lineage",
+    "evidence_rows",
+    "verdict_row",
     "RecomputeResult",
     "bundle_digest",
     "bundle_payload",

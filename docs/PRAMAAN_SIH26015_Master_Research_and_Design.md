@@ -2096,20 +2096,40 @@ CREATE TABLE verdicts (
   claim_id         BIGINT NOT NULL REFERENCES claims(id) ON DELETE CASCADE,
   version          INTEGER NOT NULL DEFAULT 1,
   level            epistemic_level NOT NULL,
+  rule_path        TEXT[] NOT NULL DEFAULT '{}',   -- which named rule fired
   score            NUMERIC(5,4) NOT NULL,
   confidence       NUMERIC(5,4) NOT NULL,
   coverage         NUMERIC(5,4) NOT NULL,
+  quality          NUMERIC(5,4),  -- metadata_integrity x data_sufficiency
   data_sufficiency NUMERIC(5,4) NOT NULL,
   dissent          JSONB NOT NULL DEFAULT '[]',
   recommended_action JSONB NOT NULL,
   engine_version   TEXT NOT NULL,
   weights          JSONB NOT NULL,          -- the exact weights used
+  -- §21.3's reproducibility guarantee needs somewhere to live. An earlier
+  -- draft of this table lacked these four columns, which made the guarantee
+  -- unimplementable: `weights` alone cannot rebuild an EvidenceBundle.
+  -- Added by migration 0002. [VERIFIED - round trip proven on real PostGIS]
+  lineage          JSONB NOT NULL DEFAULT '{}', -- the full recompute input
+  bundle_digest    CHAR(64),                    -- digest of the inputs
+  verdict_digest   CHAR(64),                    -- digest of the decision
   status           TEXT NOT NULL DEFAULT 'pending',  -- pending|adjudicated|superseded
   computed_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (claim_id, version)
+  UNIQUE (claim_id, version),
+  -- Structural invariant I1 (§14.4): confidence = |score| x coverage x quality
+  -- and coverage, quality in [0,1], so confidence can never exceed |score|.
+  -- The tolerance absorbs NUMERIC(5,4) rounding and is measured sufficient by
+  -- an integration test rather than assumed. This is the exact defect that
+  -- produced the unreproducible 0.71 in an earlier draft of Worked Example B.
+  CONSTRAINT confidence_le_score CHECK (confidence <= ABS(score) + 0.0005)
 );
 CREATE INDEX idx_v_claim  ON verdicts (claim_id, version DESC);
 CREATE INDEX idx_v_status ON verdicts (status, level);
+-- Answers "has this exact evidence already been adjudicated?", which is how a
+-- re-ingested duplicate geotag is caught. Partial: rows written before
+-- migration 0002 have no digest and must not bloat the index.
+CREATE INDEX idx_v_bundle_digest ON verdicts (bundle_digest)
+  WHERE bundle_digest IS NOT NULL;
 
 -- ============ HUMAN ADJUDICATION (append-only, hash-chained) ============
 CREATE TABLE adjudications (

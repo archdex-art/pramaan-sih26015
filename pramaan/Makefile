@@ -1,4 +1,4 @@
-.PHONY: up down seed test golden purity lint fmt demo verify-endpoints examples vocab migrate check bench verify-datasets
+.PHONY: up down seed test test-db golden purity lint fmt demo verify-endpoints examples vocab migrate check bench verify-datasets
 
 up:
 	docker compose up --build
@@ -11,6 +11,35 @@ seed:
 
 test:
 	cd backend && uv run pytest ../tests/unit ../tests/integration -q
+
+# The reproducibility guarantee (docs §21.3) through a real PostGIS instance.
+# Deliberately separate from `test`: `test` must run offline with no daemon.
+# Ephemeral container, migrations applied, torn down whichever way this exits.
+PG_PORT ?= 55433
+TEST_DSN = host=127.0.0.1 port=$(PG_PORT) user=postgres password=t dbname=t
+test-db:
+	@docker rm -f pramaan_testdb >/dev/null 2>&1 || true
+	# --platform is explicit: postgis/postgis publishes amd64 only, so on an
+	# arm64 dev machine this runs under emulation. Deliberate, not accidental —
+	# same reason docker-compose.arm64.yml exists.
+	docker run -d --name pramaan_testdb --platform linux/amd64 \
+		-e POSTGRES_PASSWORD=t -e POSTGRES_DB=t \
+		-p $(PG_PORT):5432 postgis/postgis:16-3.4-alpine >/dev/null
+	# `pg_isready` goes true during the image's own init pass, before the server
+	# restarts for real connections — that race cost a false "migration failed"
+	# once. Require three consecutive real queries instead.
+	@ok=0; for i in $$(seq 1 90); do \
+		if docker exec pramaan_testdb psql -U postgres -d t -tAc 'select 1' >/dev/null 2>&1; \
+		then ok=$$((ok+1)); else ok=0; fi; \
+		[ $$ok -ge 3 ] && break; sleep 1; done; \
+	[ $$ok -ge 3 ] || { echo "postgres never became ready"; docker rm -f pramaan_testdb; exit 1; }
+	@trap 'docker rm -f pramaan_testdb >/dev/null 2>&1' EXIT; \
+	cd db && export DATABASE_URL="postgresql+psycopg://postgres:t@127.0.0.1:$(PG_PORT)/t" && \
+	A="uv run --with psycopg[binary] --with alembic alembic" && \
+	$$A upgrade head && \
+	$$A downgrade base && $$A upgrade head && \
+	cd ../backend && PRAMAAN_TEST_DSN="$(TEST_DSN)" \
+		uv run --with 'psycopg[binary]' pytest ../tests/integration -q
 
 golden:
 	cd backend && uv run pytest ../tests/golden -q
