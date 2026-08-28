@@ -32,3 +32,9 @@ docs/diagrams/*.svg
 # secrets
 deploy/env/*.env
 .DS_Store
+
+# The film is a build artifact but the two cuts ARE deliverables — they go in a
+# submission portal. Committed on purpose; the working directory is not.
+build/video/clips/
+build/video/seg/
+build/video/cards/

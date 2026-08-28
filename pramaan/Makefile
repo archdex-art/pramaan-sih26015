@@ -1,4 +1,4 @@
-.PHONY: up down demo-up seed seed-golden series terrain web web-check test test-db golden purity lint fmt demo verify-endpoints examples vocab migrate check bench verify-datasets measure-windows
+.PHONY: up down demo-up video seed seed-golden series terrain web web-check test test-db golden purity lint fmt demo verify-endpoints examples vocab migrate check bench verify-datasets measure-windows
 
 up:
 	docker compose up --build
@@ -102,6 +102,14 @@ vocab:
 
 migrate:
 	docker compose run --rm migrate
+
+# Records the demo film from the running console and composes both cuts.
+# Needs the stack up (`make demo-up && make web`) — it drives the real UI, so
+# there is nothing to mock and nothing that can drift from the product.
+# ~90 s to record, ~30 s to compose. Output: build/video/PRAMAAN_demo*.mp4
+video:
+	uv run --with playwright python scripts/record_demo.py
+	bash scripts/compose_demo.sh
 
 # The whole demo, in order: stack, migrations, both seeds, then the console.
 # Run this and nothing else.
