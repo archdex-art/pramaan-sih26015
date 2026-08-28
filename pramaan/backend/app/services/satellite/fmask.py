@@ -193,7 +193,7 @@ def clear_mask(
     clear = (fmask & exclude) == 0
     if exclude_high_aerosol:
         clear &= ((fmask & AEROSOL_MASK) >> AEROSOL_SHIFT) != AEROSOL_HIGH
-    return not_fill & clear
+    return np.asarray(not_fill & clear, dtype=np.bool_)
 
 
 def water_mask(fmask: npt.NDArray[np.uint8]) -> npt.NDArray[np.bool_]:
@@ -204,7 +204,7 @@ def water_mask(fmask: npt.NDArray[np.uint8]) -> npt.NDArray[np.bool_]:
     calibrated water product. Disagreement between the two is informative and
     belongs in the dissent panel.
     """
-    return ((fmask & BIT_WATER) != 0) & (fmask != FMASK_FILL)
+    return np.asarray(((fmask & BIT_WATER) != 0) & (fmask != FMASK_FILL), dtype=np.bool_)
 
 
 def mask_stats(
