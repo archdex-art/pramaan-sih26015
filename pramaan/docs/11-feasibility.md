@@ -17,8 +17,12 @@ this host throughout, which is deliberately pessimistic.
 design document were wrong in ways that matter, and both have fixes that cost
 architecture rather than schedule:
 
-1. **HLS requires NASA Earthdata authentication** — the primary 30 m source is
-   not anonymously downloadable. Free to obtain; must be obtained on day 1.
+1. **HLS requires NASA Earthdata authentication, and the obvious way to use the
+   token does not work.** Resolved with a credential in hand — see §7. GDAL
+   fails with a misleading "not recognized as being in a supported file format"
+   because LP DAAC redirects to a CloudFront presigned URL and GDAL forwards the
+   bearer header onto it, which AWS rejects. Fixed in
+   `app/services/satellite/edl_auth.py`.
 2. **Bulk granule download is infeasible; windowed COG reads are essential.**
    Naive downloading is ~78 GB for the demo corpus. Windowed reads bring the
    same corpus to ~7 GB. This is an architectural constraint on the satellite
@@ -226,11 +230,12 @@ Listed because they are not yet measured, not because they are expected to fail.
 
 | # | Unknown | Why it is not yet measurable | When it resolves |
 |---|---|---|---|
-| U1 | Sustained DAAC throughput with credentials, and whether rate-limiting bites at 8 workers | needs an Earthdata account | M1, day 1-2 |
-| U2 | Real cloud-free scene availability per season for the demo AOI — the kharif monsoon gap (R-01) | needs the full STAC sweep over 3 years | M1 |
+| ~~U1~~ | ~~Sustained DAAC throughput and rate-limiting at 8 workers~~ | **RESOLVED — see §7** | measured 2026-08-28 |
+| ~~U2~~ | ~~Cloud-free scene availability per season (R-01)~~ | **RESOLVED — see §8** | measured 2026-08-28 |
 | U3 | Zero-shot per-label accuracy on Indian watershed photographs | needs GT-1 (docs/10: no public corpus exists) | M6 |
 | U4 | Matched-control pool size in real sub-watersheds — if N < 5 routinely, the control family is often unavailable and L4 becomes rare | needs loaded watershed polygons | M5 |
 | U5 | Whether CartoDEM is obtainable at 30 m for non-government users, or NASADEM must be the fallback | needs Bhoonidhi access attempt | M2 |
+| U6 | Whether the EDL presigned URL's validity window outlives a long district ingest, or resolution must be re-run mid-job | needs a full-district run | M5 |
 
 **U4 is the one worth watching.** It does not threaten delivery, but if matched
 controls are usually unavailable then L4 verdicts are rare and the "paired
@@ -251,3 +256,145 @@ python scripts/verify_datasets.py     # dataset sources
 Sections 1-3 require multi-GB downloads and a model checkpoint, so they are
 documented with their methods rather than run in CI. The commands are in this
 file's git history.
+
+---
+
+## 7. Authenticated HLS access — measured with a real token
+
+Token: `uid=danimma`, assurance level 3, issued 2026-08-28, **expires
+2026-10-27** (60-day window). Supplied out-of-band, used via `EARTHDATA_TOKEN`
+only, absent from the tree.
+
+### The access path, and why the obvious one fails
+
+```
+GET  https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/...B04.tif
+     Authorization: Bearer <token>
+->   303 See Other
+     Location: https://d1nklfio7vscoe.cloudfront.net/...?X-Amz-Signature=...
+->   fetched WITHOUT Authorization: 206, magic bytes `II` = valid TIFF
+```
+
+The presigned URL needs no credentials. GDAL sets custom headers via
+`CURLOPT_HTTPHEADER`, which curl replays on every hop of a redirect chain, so it
+forwards the bearer token to CloudFront — and AWS rejects a request carrying
+both a presigned query signature and an `Authorization` header. GDAL surfaces
+that as:
+
+```
+'/vsicurl/https://...B04.tif' not recognized as being in a supported file format.
+```
+
+which reads like a corrupt file and is actually an auth failure. **Four
+mechanisms were tried and all four fail identically:** `GDAL_HTTP_HEADERS`,
+`GDAL_HTTP_BEARER`, `GDAL_HTTP_AUTH=BEARER`, and a cookie jar.
+
+**Fix:** resolve the 303 ourselves, hand GDAL the presigned URL with no auth.
+Implemented and unit-tested in `app/services/satellite/edl_auth.py`. The
+load-bearing test asserts exactly **one** request reaches the DAAC host, because
+"simplifying" this to `follow_redirects=True` reintroduces the bug silently.
+
+### Direct S3 is not available off-region
+
+`/s3credentials` returns HTTP 200 with temporary credentials, but the granted
+role is `s3-same-region-access-role` and every call from outside `us-west-2` is
+denied:
+
+```
+User: .../s3-same-region-access-role/danimma is not authorized to perform:
+s3:ListBucket ... with an explicit deny in an identity-based policy
+```
+
+So HTTPS + presign is the only path for a demo VM anywhere but AWS us-west-2 —
+including the SIH venue.
+
+### Concurrency has a measured optimum, and more is worse
+
+16 authenticated windowed band-reads over the demo AOI, zero errors at every
+level:
+
+| Workers | Wall (s) | reads/s | vs serial |
+|---|---|---|---|
+| 1 | 74.2 | 0.22 | 1.0× |
+| 4 | 23.5 | 0.68 | 3.1× |
+| **8** | **14.0** | **1.14** | **5.2×** |
+| 12 | 26.4 | 0.61 | 2.8× — **throttled** |
+
+**12 workers is slower than 4.** Server-side throttling engages between 8 and
+12, so `OPTIMAL_CONCURRENCY = 8` is pinned in code with this table in the
+docstring and a test asserting the value, so raising it requires a new
+measurement rather than an intuition.
+
+### Corpus budget, now from measurement rather than estimate
+
+| Quantity | Measured |
+|---|---|
+| Windowed band-read over the demo AOI | **2.26 MiB** |
+| Time per read (serial, incl. presign round-trip) | ~4.5-6.5 s |
+| Best sustained rate | 1.14 reads/s at 8 workers |
+| 3,024 band-reads (2 districts x 3 yr x 3 seasons) | **6.7 GB, ~44 min** |
+
+44 minutes, one-time, offline-cacheable, against 4.3+ hours for the naive
+granule path. The earlier 16-minute estimate assumed 2.5 s/read; real reads are
+~5 s once the presign round-trip is counted. **44 min is the number to plan
+with.**
+
+### End-to-end proof
+
+STAC search -> EDL presign -> windowed COG read -> Fmask bit unpack -> NDVI,
+on `HLS.S30.T43QGB.2024311T052011.v2.0` (3 % cloud, rabi 2024) over the demo AOI:
+
+```
+B04    (1119, 1059)  2.26 MiB in 6.3 s
+B08    (1119, 1059)  2.26 MiB in 4.7 s
+Fmask  (1119, 1059)  1.13 MiB in 4.4 s
+
+usable pixels : 1,184,481 / 1,185,021  (100.0 %)
+NDVI mean     : +0.5843
+NDVI p10/p90  : +0.4017 / +0.7374
+```
+
+A rabi-season NDVI of 0.58 over cropland in Marathwada is physically plausible.
+**The entire satellite evidence path works against real data.** This was the
+single largest unverified assumption in the project.
+
+---
+
+## 8. Seasonal cloud availability — risk R-01 quantified
+
+The plan rates persistent monsoon cloud as its highest-impact data risk
+(P=5, I=3) and mitigates it with "rabi/summer carry the analysis". That
+mitigation is now measured and correct.
+
+HLS S30 + L30, demo AOI, scene-level `eo:cloud_cover`, 3 years:
+
+| Season | Scenes | < 20 % cloud | < 40 % | Median cloud |
+|---|---|---|---|---|
+| **kharif** (Jun-Sep, monsoon) | 255 | **27 (10.6 %)** | 46 | **66-82 %** |
+| **rabi** (Nov-Feb) | 446 | **335 (75.1 %)** | 369 | **1-6 %** |
+| **summer** (Mar-May) | 367 | **265 (72.2 %)** | 297 | **1-3.5 %** |
+
+Per-year kharif detail shows how variable it is: **2022 gave 3 clear scenes,
+2023 gave 19, 2024 gave 5.**
+
+### What this means
+
+- **Rabi and summer are data-rich**, ~110-125 usable scenes per season per year.
+  Seasonal compositing has ample input, and same-season year-over-year
+  comparison is comfortably supported.
+- **Kharif is thin but not empty**: ~9 clear scenes per year on average, and as
+  few as 3 in a bad year. A monsoon-window composite is possible in a good year
+  and legitimately impossible in a bad one.
+- **The engine's data-sufficiency floor will fire on kharif and pass on
+  rabi/summer, and that is correct behaviour, not a defect.** Golden case 11
+  already encodes exactly this outcome (`data_sufficiency 0.18` -> N1
+  INCONCLUSIVE). The measured cloud statistics are the empirical justification
+  for that case existing.
+
+### Caveat, stated because it cuts the other way
+
+These are **scene-level** cloud percentages. The design insists on
+*AOI-specific* usable fraction (a scene 79 % cloudy may be clear over a small
+sub-watershed), so these figures are conservative for a small AOI. The
+per-AOI figure will be better than the table above — but it must be computed,
+not assumed, and it is what `data_sufficiency` should carry.

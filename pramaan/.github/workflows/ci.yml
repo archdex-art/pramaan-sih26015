@@ -32,7 +32,7 @@ jobs:
       # The engine is the only module under --strict. It is a pure function and
       # government evidence depends on it; there is no excuse for Any here.
       - name: Type-check reconciliation engine (strict)
-        run: uv run mypy app/services/reconcile app/services/terrain app/services/photo --strict
+        run: uv run mypy app/services/reconcile app/services/terrain app/services/photo app/services/satellite --strict
 
       - name: Engine purity (no IO, no clock, no RNG)
         run: uv run pytest ../tests/unit/test_engine_purity.py -q
@@ -56,6 +56,7 @@ jobs:
           --cov=app.services.reconcile
           --cov=app.services.terrain
           --cov=app.services.photo
+          --cov=app.services.satellite
           --cov-branch
           --cov-report=term-missing
           --cov-fail-under=100
