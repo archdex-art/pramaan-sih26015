@@ -275,6 +275,54 @@ def check_overpass(client: httpx.Client) -> tuple[str, str]:
     )
 
 
+def check_bhuvan_reference_layers(client: httpx.Client) -> tuple[str, str]:
+    """Bhuvan WMS: authoritative NRSC drainage and waterbody reference layers.
+
+    This is the W3 fix's missing input. The design document calls for
+    calibrating the flow-accumulation stream-initiation threshold against "a
+    reference drainage layer (Bhuvan/WRIS drainage)" without establishing that
+    one is actually obtainable. It is: `iwmp:MH_<DISTRICT>_drn` is published for
+    every Maharashtra district.
+
+    Constraint found: **WFS is not enabled** on this endpoint (GetCapabilities
+    returns an empty feature-type list), so line geometries cannot be
+    downloaded. The layers are WMS raster only. That is workable - calibration
+    rasterises our extracted network anyway, so the comparison is done as a
+    raster mask agreement via GetMap at a fixed bbox and resolution - but it
+    rules out any plan that assumed vector drainage.
+    """
+    import re
+
+    r = client.get(
+        "https://bhuvan-vec2.nrsc.gov.in/bhuvan/wms",
+        params={"service": "WMS", "request": "GetCapabilities", "version": "1.3.0"},
+        headers=UA,
+        follow_redirects=True,
+    )
+    if r.status_code != 200:
+        return S.FAIL, f"HTTP {r.status_code}"
+    names = set(re.findall(r"<Name>([^<]+)</Name>", r.text))
+    drn = sorted(n for n in names if n.startswith("iwmp:MH_") and n.endswith("_drn"))
+    waterbodies = sorted(n for n in names if "waterbod" in n.lower())
+    if not drn:
+        return S.FAIL, "no iwmp:MH_*_drn drainage layers advertised"
+
+    wfs = client.get(
+        "https://bhuvan-vec2.nrsc.gov.in/bhuvan/wfs",
+        params={"service": "WFS", "request": "GetCapabilities", "version": "1.1.0"},
+        headers=UA,
+        follow_redirects=True,
+    )
+    wfs_types = len(re.findall(r"<(?:wfs:)?Name>([^<]+)</(?:wfs:)?Name>", wfs.text))
+    return S.OK, (
+        f"{len(names)} layers total; {len(drn)} Maharashtra district drainage "
+        f"layers (e.g. {', '.join(drn[:3])}); {len(waterbodies)} waterbody layers "
+        f"(incl. pmksy:pmksy_waterbodes_lulc50k1112). WFS advertises "
+        f"{wfs_types} feature types, so vector download is UNAVAILABLE - use "
+        f"WMS GetMap and compare as raster masks."
+    )
+
+
 SOURCES: list[Source] = [
     Source(
         key="lucas_cover",
@@ -389,6 +437,20 @@ SOURCES: list[Source] = [
         check=check_reachable("https://download.geofabrik.de/asia/india.html", "india"),
     ),
     Source(
+        key="bhuvan_drainage",
+        name="Bhuvan WMS — IWMP district drainage + PMKSY waterbodies",
+        url="https://bhuvan-vec2.nrsc.gov.in/bhuvan/wms",
+        use="The W3 fix's reference layer, and it is authoritative NRSC data: "
+        "per-district drainage networks to calibrate the flow-accumulation "
+        "stream-initiation threshold against, plus PMKSY waterbody polygons as "
+        "an independent GT-2 water reference. WMS raster only - no WFS - so "
+        "calibration compares rasterised masks, not vector geometries.",
+        licence="NRSC terms; view/overlay use. Attribution required.",
+        asset="GT-2",
+        check=check_bhuvan_reference_layers,
+        timeout_s=240.0,
+    ),
+    Source(
         key="jrc_gsw",
         name="JRC Global Surface Water",
         url="https://global-surface-water.appspot.com/",
@@ -404,10 +466,22 @@ SOURCES: list[Source] = [
 
 def wrap(source: Source, client: httpx.Client) -> Result:
     started = datetime.now(UTC)
+    budget = source.timeout_s if source.timeout_s is not None else TIMEOUT.read
     try:
-        status, detail = source.check(client)
+        if source.timeout_s is None:
+            status, detail = source.check(client)
+        else:
+            # Some government endpoints are legitimately slow: Bhuvan's WMS
+            # GetCapabilities is ~6.7 MB across ~9,100 layers and measures
+            # 90-110 s. A fresh client, so the override cannot leak into other
+            # probes and quietly mask a real timeout elsewhere.
+            with httpx.Client(
+                timeout=httpx.Timeout(source.timeout_s, connect=20.0),
+                follow_redirects=True,
+            ) as slow:
+                status, detail = source.check(slow)
     except httpx.TimeoutException:
-        status, detail = S.FAIL, f"timeout after {TIMEOUT.read}s"
+        status, detail = S.FAIL, f"timeout after {budget}s"
     except httpx.HTTPError as exc:
         status, detail = S.FAIL, f"{type(exc).__name__}: {exc}"
     except Exception as exc:  # noqa: BLE001

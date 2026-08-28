@@ -8,8 +8,8 @@
     "asset": "GT-1",
     "status": "OK",
     "detail": "200, directory listing exposes campaign folders: 2006, 2009, 2012, 2015, 2018",
-    "elapsed_ms": 604,
-    "checked_at": "2026-08-28T00:38:55.504550+00:00"
+    "elapsed_ms": 613,
+    "checked_at": "2026-08-28T04:12:02.130144+00:00"
   },
   {
     "key": "lucas_harmonised",
@@ -19,9 +19,9 @@
     "licence": "JRC open data",
     "asset": "GT-1",
     "status": "OK",
-    "detail": "200, 81286 bytes",
-    "elapsed_ms": 733,
-    "checked_at": "2026-08-28T00:38:56.237667+00:00"
+    "detail": "200, 81351 bytes",
+    "elapsed_ms": 783,
+    "checked_at": "2026-08-28T04:12:02.913410+00:00"
   },
   {
     "key": "lucas_ml",
@@ -31,9 +31,9 @@
     "licence": "Check per-repository terms on Source Cooperative",
     "asset": "GT-1",
     "status": "OK",
-    "detail": "200, 280822 bytes",
-    "elapsed_ms": 3385,
-    "checked_at": "2026-08-28T00:38:59.623634+00:00"
+    "detail": "200, 281451 bytes",
+    "elapsed_ms": 1307,
+    "checked_at": "2026-08-28T04:12:04.220994+00:00"
   },
   {
     "key": "mapillary",
@@ -44,8 +44,8 @@
     "asset": "GT-1",
     "status": "AUTH_REQUIRED",
     "detail": "HTTP 500 unauthenticated; token still required",
-    "elapsed_ms": 269,
-    "checked_at": "2026-08-28T00:38:59.893022+00:00"
+    "elapsed_ms": 445,
+    "checked_at": "2026-08-28T04:12:04.667035+00:00"
   },
   {
     "key": "commons",
@@ -56,8 +56,8 @@
     "asset": "GT-1",
     "status": "OK",
     "detail": "control (Paris 10 km) 500 files; demo AOI (19.15N 77.30E, 10 km) 41 files \u2014 genuinely sparse, not a query error. On-topic categories total ~283 files: Check dams in India=14; Dams in Maharashtra=108; Ponds in India=42; Water tanks in India=46; Stepwells in India=15; Irrigation in India=58. Radius is capped at 10000 m; larger values return empty, not more data.",
-    "elapsed_ms": 4315,
-    "checked_at": "2026-08-28T00:39:04.208806+00:00"
+    "elapsed_ms": 4943,
+    "checked_at": "2026-08-28T04:12:09.610248+00:00"
   },
   {
     "key": "places365",
@@ -68,8 +68,8 @@
     "asset": "GT-1",
     "status": "GATED",
     "detail": "download page no longer offers direct archives: access to the legacy dataset now requires signing a Google Form while v2 is in progress",
-    "elapsed_ms": 444,
-    "checked_at": "2026-08-28T00:39:04.653495+00:00"
+    "elapsed_ms": 1542,
+    "checked_at": "2026-08-28T04:12:11.152700+00:00"
   },
   {
     "key": "agrifieldnet",
@@ -79,9 +79,9 @@
     "licence": "CC-BY-4.0",
     "asset": "CONTEXT",
     "status": "OK",
-    "detail": "200, 249965 bytes",
-    "elapsed_ms": 1394,
-    "checked_at": "2026-08-28T00:39:06.048525+00:00"
+    "detail": "200, 249977 bytes",
+    "elapsed_ms": 2449,
+    "checked_at": "2026-08-28T04:12:13.602733+00:00"
   },
   {
     "key": "overpass",
@@ -90,10 +90,10 @@
     "use": "Candidate GT-2 seed. VERDICT: unusable for check dams (see the measured counts in the notes below), partially usable for ponds and water bodies. Production route is a Geofabrik India extract, not the live API.",
     "licence": "ODbL 1.0 (share-alike; attribution required)",
     "asset": "GT-2",
-    "status": "OK",
-    "detail": "global mirror confirmed by positive control (Zurich 190); 27 natural=water features in the demo AOI bbox",
-    "elapsed_ms": 11277,
-    "checked_at": "2026-08-28T00:39:17.326457+00:00"
+    "status": "FAIL",
+    "detail": "timeout after 45.0s",
+    "elapsed_ms": 45731,
+    "checked_at": "2026-08-28T04:12:59.334540+00:00"
   },
   {
     "key": "geofabrik",
@@ -103,9 +103,21 @@
     "licence": "ODbL 1.0",
     "asset": "GT-2",
     "status": "OK",
-    "detail": "200, 18810 bytes",
-    "elapsed_ms": 30836,
-    "checked_at": "2026-08-28T00:39:48.163132+00:00"
+    "detail": "200, 18470 bytes",
+    "elapsed_ms": 606,
+    "checked_at": "2026-08-28T04:12:59.941124+00:00"
+  },
+  {
+    "key": "bhuvan_drainage",
+    "name": "Bhuvan WMS \u2014 IWMP district drainage + PMKSY waterbodies",
+    "url": "https://bhuvan-vec2.nrsc.gov.in/bhuvan/wms",
+    "use": "The W3 fix's reference layer, and it is authoritative NRSC data: per-district drainage networks to calibrate the flow-accumulation stream-initiation threshold against, plus PMKSY waterbody polygons as an independent GT-2 water reference. WMS raster only - no WFS - so calibration compares rasterised masks, not vector geometries.",
+    "licence": "NRSC terms; view/overlay use. Attribution required.",
+    "asset": "GT-2",
+    "status": "OK",
+    "detail": "5306 layers total; 24 Maharashtra district drainage layers (e.g. iwmp:MH_AKOLA_drn, iwmp:MH_AMRAVATI_drn, iwmp:MH_AURANGABAD_drn); 6 waterbody layers (incl. pmksy:pmksy_waterbodes_lulc50k1112). WFS advertises 0 feature types, so vector download is UNAVAILABLE - use WMS GetMap and compare as raster masks.",
+    "elapsed_ms": 97393,
+    "checked_at": "2026-08-28T04:14:37.335082+00:00"
   },
   {
     "key": "jrc_gsw",
@@ -116,7 +128,7 @@
     "asset": "GT-2",
     "status": "OK",
     "detail": "200, 19799 bytes",
-    "elapsed_ms": 385,
-    "checked_at": "2026-08-28T00:39:48.548842+00:00"
+    "elapsed_ms": 388,
+    "checked_at": "2026-08-28T04:14:37.724048+00:00"
   }
 ]
