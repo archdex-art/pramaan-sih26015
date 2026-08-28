@@ -1,4 +1,4 @@
-.PHONY: up down seed test golden purity lint fmt demo verify-endpoints examples vocab migrate check
+.PHONY: up down seed test golden purity lint fmt demo verify-endpoints examples vocab migrate check bench verify-datasets
 
 up:
 	docker compose up --build
@@ -27,6 +27,12 @@ fmt:
 
 verify-endpoints:
 	cd backend && uv run --with httpx python ../scripts/verify_endpoints.py --write-docs
+
+bench:
+	cd backend && uv run python ../scripts/benchmark.py
+
+verify-datasets:
+	uv run --with httpx python scripts/verify_datasets.py --write-docs
 
 examples:
 	cd backend && uv run python ../scripts/render_worked_examples.py --write
