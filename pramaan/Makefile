@@ -1,4 +1,4 @@
-.PHONY: up down seed series web web-check test test-db golden purity lint fmt demo verify-endpoints examples vocab migrate check bench verify-datasets measure-windows
+.PHONY: up down seed series terrain web web-check test test-db golden purity lint fmt demo verify-endpoints examples vocab migrate check bench verify-datasets measure-windows
 
 up:
 	docker compose up --build
@@ -86,6 +86,12 @@ vocab:
 
 migrate:
 	docker compose run --rm migrate
+
+# NASADEM -> hydrology -> covariates -> matched controls. Needs EARTHDATA_TOKEN
+# and the .hgt tiles in data/demo/dem. ~4 s once the tiles are cached.
+terrain:
+	uv run --with whitebox --with rasterio --with numpy --with pyproj \
+		python scripts/build_terrain.py
 
 # Frontend dev server. Proxies /api to 127.0.0.1:8000, so run the API first.
 web:

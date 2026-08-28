@@ -613,3 +613,92 @@ def test_temporal_endpoint_422s_when_the_series_was_not_retained(claim_id: int) 
     r = _client().get(f"/api/v1/claims/{claim_id}/temporal")
     assert r.status_code == 422
     assert "no observed series" in r.json()["detail"]
+
+
+def _seed_matched_controls(claim_id: int) -> None:
+    """A claim whose control family is available and covariate-matched."""
+    from conftest import bundle as make_bundle
+    from conftest import fam
+
+    from app.services.audit import wire_payload
+    from app.services.reconcile import EvidenceBundle, FamilyEvidence
+    from app.workers.reconcile import reconcile_claim
+
+    base = make_bundle(families=(fam("temporal", 0.8),))
+    temporal = FamilyEvidence(
+        family="temporal",
+        agreement=0.8,
+        available=True,
+        reason="measured",
+        lineage={
+            "index": "NDVI",
+            "observed_series": [
+                {
+                    "year": 2022,
+                    "season": "rabi",
+                    "site": 0.5211,
+                    "controls": [0.4] * 12,
+                    "usable_fraction": 1.0,
+                    "n_scenes": 4,
+                    "scene_ids": [],
+                }
+            ],
+        },
+    )
+    control = FamilyEvidence(
+        family="control",
+        agreement=0.16,
+        available=True,
+        reason="differenced estimate +0.0256 against 12 matched controls",
+        lineage={
+            "reason": "12 covariate-matched controls from NASADEM_HGT.001",
+            "per_season": [
+                {
+                    "season": "rabi",
+                    "pre_year": 2022,
+                    "post_year": 2025,
+                    "site_delta": 0.1157,
+                    "control_median_delta": 0.0901,
+                    "control_p10": -0.0217,
+                    "control_p90": 0.1363,
+                    "differenced_estimate": 0.0256,
+                    "site_inside_control_band": True,
+                    "n_controls": 12,
+                }
+            ],
+        },
+    )
+    b = EvidenceBundle(
+        claim_id=base.claim_id,
+        intervention_type=base.intervention_type,
+        families=(temporal, control),
+        gates=base.gates,
+        quality=base.quality,
+        alternatives=base.alternatives,
+    )
+    reconcile_claim(claim_id, wire_payload(b))
+
+
+def test_bands_survive_the_matched_control_lineage_key(claim_id: int) -> None:
+    """Regression. The control producer writes per-season comparisons under
+    `per_season`; the endpoint originally read only the older
+    `preliminary_ring_observation`, so switching to matched controls silently
+    emptied `bands` and the chart lost its ribbon while every other field
+    stayed correct.
+    """
+    _seed_matched_controls(claim_id)
+    body = _client().get(f"/api/v1/claims/{claim_id}/temporal").json()
+    assert len(body["bands"]) == 1, "the ribbon must not vanish"
+    assert body["bands"][0]["n_controls"] == 12
+    assert body["bands"][0]["differenced_estimate"] == pytest.approx(0.0256)
+
+
+def test_control_basis_is_a_sentence_not_a_criteria_dict(claim_id: int) -> None:
+    """`control_basis` is rendered on the chart. A first version returned the
+    matcher's threshold dict, which stringified onto the plot as
+    "{'max_slope_diff_deg': 2.0, ...}"."""
+    _seed_matched_controls(claim_id)
+    body = _client().get(f"/api/v1/claims/{claim_id}/temporal").json()
+    assert body["control_available"] is True
+    assert not body["control_basis"].startswith("{")
+    assert "control" in body["control_basis"].lower()

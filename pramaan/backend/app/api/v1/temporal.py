@@ -163,14 +163,30 @@ def get_temporal(claim_id: int, session: DbSession) -> TemporalOut:
 
     control = rows.get("control")
     control_lineage: dict[str, Any] = dict(control["lineage"] or {}) if control else {}
-    bands_raw = control_lineage.get("preliminary_ring_observation") or lineage.get("pairings", [])
+
+    # Per-season comparisons live under `per_season` once the control producer
+    # has run. The two older keys are read as fallbacks so a claim reconciled
+    # before matched controls existed still draws its ribbon — renaming the key
+    # silently emptied `bands` and the chart lost its ribbon entirely.
+    bands_raw = (
+        control_lineage.get("per_season")
+        or control_lineage.get("preliminary_ring_observation")
+        or lineage.get("pairings")
+        or []
+    )
 
     control_available = bool(control and control["available"])
-    control_basis = (
-        str(control_lineage.get("criteria", "covariate-matched controls"))
-        if control_available
-        else str((bands_raw[0] if bands_raw else {}).get("control_basis", "controls unavailable"))
-    )
+    if control_available:
+        # The ControlSet's own reason, not its criteria dict: this string is
+        # rendered on the chart, and a dict of thresholds is not a sentence.
+        payload_reason = (control["payload"] or {}).get("reason") if control else None
+        control_basis = str(
+            payload_reason or control_lineage.get("reason") or "covariate-matched controls"
+        )
+    else:
+        control_basis = str(
+            (bands_raw[0] if bands_raw else {}).get("control_basis", "controls unavailable")
+        )
 
     trend_raw = (lineage.get("trends") or {}).get(str(lineage.get("index", "NDVI")))
     trend = (

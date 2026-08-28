@@ -39,6 +39,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -106,11 +107,25 @@ def search_season(client: httpx.Client, year: int, season: str) -> list[SceneRef
     else:
         window = f"{year}-{m0:02d}-01T00:00:00Z/{year}-{m1:02d}-30T23:59:59Z"
 
-    resp = client.post(
-        STAC,
-        json={"collections": COLLECTIONS, "bbox": list(AOI), "datetime": window, "limit": 100},
-        timeout=120.0,
-    )
+    # CMR STAC rate-limits: a full 5-year x 2-season sweep reliably draws a 429
+    # part-way through. Measured, not anticipated — the first run died at
+    # 2021 summer. Exponential backoff with a cap, and the retry count is
+    # printed so a slow run is visibly throttling rather than mysteriously slow.
+    body = {
+        "collections": COLLECTIONS,
+        "bbox": list(AOI),
+        "datetime": window,
+        "limit": 100,
+    }
+    resp = None
+    for attempt in range(6):
+        resp = client.post(STAC, json=body, timeout=120.0)
+        if resp.status_code != 429:
+            break
+        delay = min(2.0 * 2**attempt, 30.0)
+        print(f"      429 from CMR STAC, backing off {delay:.0f}s (attempt {attempt + 1}/6)")
+        time.sleep(delay)
+    assert resp is not None
     resp.raise_for_status()
 
     out: list[SceneRef] = []
@@ -258,7 +273,7 @@ def main() -> int:
         print("no control positions fit inside the grid", file=sys.stderr)
         return 3
     print(f"site pixel    : row={site_row} col={site_col}")
-    print(f"controls      : {len(controls)} on a {CONTROL_RING_PX * 30 / 1000:.1f} km ring\n")
+    print(f"controls      : {len(controls)} — {_control_basis()}\n")
 
     resolver = EdlResolver()
     series: list[dict[str, Any]] = []
@@ -345,6 +360,7 @@ def main() -> int:
                     "resolution_m": grid.resolution_m,
                 },
                 "cloud_limit_pct": CLOUD_LIMIT,
+                "control_basis": _control_basis(),
                 "kharif": "excluded: 0-5 usable scenes per year on this AOI, measured",
                 "series": series,
             },
@@ -357,6 +373,21 @@ def main() -> int:
     print(f"\n{ok} of {len(series)} season-windows produced a composite")
     print(f"wrote {out.relative_to(REPO_ROOT)}")
     return 0
+
+
+def _control_basis() -> str:
+    """Names how the control positions were chosen. Read by the seed, which must
+    not have to infer it."""
+    terrain = REPO_ROOT / "data" / "demo" / "terrain.json"
+    if terrain.is_file():
+        payload = json.loads(terrain.read_text(encoding="utf-8"))
+        if payload.get("matched_controls"):
+            dem = payload.get("dem", {})
+            return (
+                f"covariate-matched controls from {dem.get('source', 'DEM')}; "
+                f"C1-C8 applied over a {dem.get('disk_radius_m', 15)} m disk"
+            )
+    return f"fixed {CONTROL_RING_PX * 30 / 1000:.1f} km ring; NOT covariate-matched"
 
 
 def _round(value: float) -> float | None:
@@ -384,24 +415,44 @@ def _reproject_bounds(
 
 
 def _control_positions(site_row: int, site_col: int, grid: Any) -> list[tuple[int, int]]:
-    """Controls on a ring around the site, clipped to the grid.
+    """Control pixel positions.
 
-    A ring, not random points: it keeps every control at the same distance, so
-    none is accidentally adjacent to the structure. Real control selection is
-    covariate-matched on DEM derivatives (`controls.select_controls`); this
-    script cannot do that until the DEM lands (M2), so the geometry is explicit
-    and the output records that these are ring positions rather than matched
-    controls.
+    Prefers the **matched controls** in `data/demo/terrain.json`, selected by
+    `controls.select_controls` from DEM-derived covariates (slope, elevation,
+    distance-to-stream, Strahler order). Those are the only positions whose
+    deltas can legitimately be differenced against the site's.
+
+    Falls back to a fixed 1.2 km ring when the terrain file is absent, so this
+    script still runs before M2 has been done — but the fallback is reported in
+    the output as a preliminary observation rather than a control set, because a
+    ring is not covariate-matched and differencing against it would manufacture
+    the one family whose job is excluding alternative explanations.
     """
     import math
 
-    out: list[tuple[int, int]] = []
+    terrain = REPO_ROOT / "data" / "demo" / "terrain.json"
+    if terrain.is_file():
+        payload = json.loads(terrain.read_text(encoding="utf-8"))
+        selected = payload.get("matched_controls") or []
+        out: list[tuple[int, int]] = []
+        for control in selected:
+            col = int((float(control["x"]) - grid.left) / grid.resolution_m)
+            row = int((grid.top - float(control["y"])) / grid.resolution_m)
+            if 0 <= row < grid.height and 0 <= col < grid.width:
+                out.append((row, col))
+        if out:
+            print(f"  using {len(out)} matched controls from terrain.json")
+            return out
+        print("  terrain.json has no matched_controls; falling back to a ring")
+
+    out = []
     for i in range(8):
         angle = 2 * math.pi * i / 8
         r = site_row + int(CONTROL_RING_PX * math.sin(angle))
         c = site_col + int(CONTROL_RING_PX * math.cos(angle))
         if 0 <= r < grid.height and 0 <= c < grid.width:
             out.append((r, c))
+    print(f"  using a fixed {CONTROL_RING_PX * 30 / 1000:.1f} km ring ({len(out)} positions)")
     return out
 
 

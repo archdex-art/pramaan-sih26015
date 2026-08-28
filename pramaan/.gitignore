@@ -17,6 +17,13 @@ data/cache/**
 *.tif
 *.tiff
 *.jp2
+# DEM tiles and their derivatives: 223 MB, and re-downloadable in ~30 s from
+# NASADEM via `scripts/build_terrain.py`. The *measured outputs* of that script
+# (data/demo/terrain.json) ARE committed - they are the evidence.
+*.hgt
+*.num
+*.swb
+data/demo/dem/**
 
 # generated
 docs/api/openapi.json

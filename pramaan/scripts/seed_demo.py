@@ -60,7 +60,12 @@ from app.services.satellite.evidence import assess as satellite_assess  # noqa: 
 from app.services.satellite.evidence import (  # noqa: E402
     to_family_evidence as satellite_evidence,
 )
-from app.services.temporal.controls import ControlSet  # noqa: E402
+from app.services.temporal.controls import (  # noqa: E402
+    ControlCandidate,
+    ControlSet,
+    SiteCovariates,
+    compare_to_controls,
+)
 from app.services.temporal.evidence import assess as temporal_assess  # noqa: E402
 from app.services.temporal.evidence import (  # noqa: E402
     to_control_evidence as control_evidence,
@@ -75,6 +80,9 @@ from app.services.temporal.seasons import (  # noqa: E402
 )
 from app.services.temporal.trend import mann_kendall, theil_sen_slope  # noqa: E402
 from app.services.temporal.windows import build_pairings, build_windows  # noqa: E402
+from app.services.terrain.evidence import to_family_evidence as terrain_evidence  # noqa: E402
+from app.services.terrain.plausibility import evaluate as terrain_evaluate  # noqa: E402
+from app.services.terrain.types import DiskStat, TerrainSample  # noqa: E402
 from app.workers.reconcile import reconcile_claim  # noqa: E402
 
 SERIES = REPO_ROOT / "data" / "demo" / "temporal_series.json"
@@ -371,31 +379,108 @@ def build_bundle(data: dict[str, Any], cmps: list[Comparison]) -> EvidenceBundle
         },
     )
 
-    # --- control: unavailable, with the ring measurement kept as lineage ----
-    ring = ControlSet(
-        selected=(),
-        rejected={"covariates_unavailable": len(cmps[0].control_deltas)},
-        n_candidates=len(cmps[0].control_deltas),
-        insufficient=True,
-        channel_structure=True,
-        reason=(
-            f"Covariate matching could not run: slope, elevation, "
-            f"distance-to-stream and Strahler order require DEM derivatives "
-            f"that are not yet available for this district. "
-            f"{len(cmps[0].control_deltas)} ring positions at 1.2 km were "
-            f"measured and are recorded in the lineage, but they are not "
-            f"matched controls and are not scored."
-        ),
-    )
-    control = control_evidence(ring, None, "check_dam", INDEX)
+    # --- terrain: measured from the DEM, via the terrain rule engine --------
+    terrain_path = REPO_ROOT / "data" / "demo" / "terrain.json"
+    terrain_family = None
+    control_family = None
+    if terrain_path.is_file():
+        td = json.loads(terrain_path.read_text(encoding="utf-8"))
+        site_t = td["site"]
+
+        def disk(name: str) -> DiskStat:
+            v = site_t[name]
+            return DiskStat(
+                minimum=float(v["minimum"]),
+                median=float(v["median"]),
+                maximum=float(v["maximum"]),
+            )
+
+        px_to_km2 = 900 / 1e6
+        accum = site_t["flow_accum_px"]
+        sample = TerrainSample(
+            disk_radius_m=float(td["dem"]["disk_radius_m"]),
+            slope_deg=disk("slope_deg"),
+            strahler_order=disk("strahler_order"),
+            flow_accumulation_px=disk("flow_accum_px"),
+            dist_to_stream_m=disk("dist_to_stream_m"),
+            upstream_area_km2=DiskStat(
+                minimum=float(accum["minimum"]) * px_to_km2,
+                median=float(accum["median"]) * px_to_km2,
+                maximum=float(accum["maximum"]) * px_to_km2,
+            ),
+            in_depression=False,
+            dem_product=td["dem"]["source"],
+            dem_version="NASADEM.001",
+            stream_threshold_px=float(td["threshold_calibration"]["chosen_threshold_px"]),
+            stream_threshold_agreement=float(
+                td["threshold_calibration"]["chosen_density_km_per_km2"]
+            ),
+        )
+        terrain_family = terrain_evidence(terrain_evaluate("check_dam", sample), sample)
+
+        # --- control: real covariate-matched differencing --------------------
+        matched = td.get("matched_controls") or []
+        first = cmps[0]
+        deltas = first.control_deltas
+        if len(matched) >= 5 and len(deltas) >= 5:
+            cov = SiteCovariates(
+                slope_deg=float(site_t["slope_deg"]["median"]),
+                aspect_class="unknown",
+                lulc_class="unknown",
+                soil_class="unknown",
+                elevation_m=float(site_t["elevation_m"]["median"]),
+                dist_to_stream_m=float(site_t["dist_to_stream_m"]["median"]),
+                strahler_order=int(site_t["strahler_order"]["median"]),
+            )
+            candidates = [
+                ControlCandidate(
+                    control_id=matched[i]["control_id"] if i < len(matched) else f"C{i}",
+                    covariates=cov,
+                    delta=delta,
+                    data_sufficiency=1.0,
+                    dist_to_nearest_intervention_m=float(
+                        matched[i]["dist_from_site_m"] if i < len(matched) else 999.0
+                    ),
+                )
+                for i, delta in enumerate(deltas)
+            ]
+            control_set = ControlSet(
+                selected=tuple(candidates),
+                rejected=dict(td["control_selection"]["rejected_by_reason"]),
+                n_candidates=int(td["control_selection"]["n_candidates"]),
+                insufficient=False,
+                channel_structure=bool(td["control_selection"]["channel_structure"]),
+                reason=(
+                    f"{len(candidates)} covariate-matched controls from "
+                    f"{td['dem']['source']}, matched on slope, elevation and "
+                    "distance-to-stream over a 15 m uncertainty disk"
+                ),
+            )
+            comparison = compare_to_controls(first.site_delta, control_set)
+            control_family = control_evidence(control_set, comparison, "check_dam", INDEX)
+
+    if control_family is None:
+        # No DEM, so covariate matching could not run. Unavailable, not scored.
+        ring = ControlSet(
+            selected=(),
+            rejected={"covariates_unavailable": len(cmps[0].control_deltas)},
+            n_candidates=len(cmps[0].control_deltas),
+            insufficient=True,
+            channel_structure=True,
+            reason=(
+                "Covariate matching could not run: slope, elevation, "
+                "distance-to-stream and Strahler order require DEM derivatives "
+                "that have not been built for this district."
+            ),
+        )
+        control_family = control_evidence(ring, None, "check_dam", INDEX)
     control = FamilyEvidence(
-        family=control.family,
-        agreement=control.agreement,
-        available=control.available,
-        reason=control.reason,
-        lineage=dict(control.lineage)
-        | {"preliminary_ring_observation": [c.lineage() for c in cmps]},
-        cluster_scale=control.cluster_scale,
+        family=control_family.family,
+        agreement=control_family.agreement,
+        available=control_family.available,
+        reason=control_family.reason,
+        lineage=dict(control_family.lineage) | {"per_season": [c.lineage() for c in cmps]},
+        cluster_scale=control_family.cluster_scale,
     )
 
     # --- context: unavailable ----------------------------------------------
@@ -407,7 +492,9 @@ def build_bundle(data: dict[str, Any], cmps: list[Comparison]) -> EvidenceBundle
     return EvidenceBundle(
         claim_id="DEMO-MH-520-0001",
         intervention_type="check_dam",
-        families=(satellite, temporal, control, context),
+        families=tuple(
+            f for f in (terrain_family, satellite, temporal, control, context) if f is not None
+        ),
         gates=Gates(
             detectability_passed=True,
             expected_footprint_m2=3200.0,
