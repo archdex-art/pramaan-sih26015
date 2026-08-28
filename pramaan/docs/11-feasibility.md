@@ -398,3 +398,90 @@ These are **scene-level** cloud percentages. The design insists on
 sub-watershed), so these figures are conservative for a small AOI. The
 per-AOI figure will be better than the table above — but it must be computed,
 not assumed, and it is what `data_sufficiency` should carry.
+
+---
+
+## 9. Index pipeline — validated, and two traps caught
+
+Built `app/services/satellite/{fmask,indices}.py` and validated the whole chain
+against real HLS granules. Two defects were found *by running it on real data*
+that no amount of review would have caught.
+
+### Trap 1 — the aerosol flag would have blinded the pipeline
+
+HLS documentation recommends discarding pixels flagged high aerosol
+(Fmask bits 6-7 == 11), and the first implementation did so by default.
+Measured over the demo AOI:
+
+| Collection | Date | Meta cloud | aerosol==11 | aerosol==00 | cloud-clear |
+|---|---|---|---|---|---|
+| HLSS30 | 2023-01-01 | 1 % | 97.0 % | 0.0 % | 94.4 % |
+| HLSS30 | 2023-05-11 | 2 % | 90.2 % | 0.0 % | 96.0 % |
+| HLSS30 | 2024-11-06 | 3 % | 99.7 % | 0.0 % | 92.6 % |
+| HLSL30 | 2023-01-02 | 7 % | 99.9 % | 0.0 % | 83.9 % |
+| HLSL30 | 2024-11-04 | 11 % | 99.9 % | 0.0 % | 84.3 % |
+
+Saturated across **both sensors, three seasons, two years**, and `aerosol == 00`
+never occurs. On one 3 %-cloud scene every Fmask value in the AOI was >= 192
+(bits 6-7 always set) and usable fraction went from **98.89 % to 0.00 %**.
+
+`DEFAULT_EXCLUDE_HIGH_AEROSOL = False`, pinned by a test.
+
+**This is the most dangerous class of bug this project can have.** With the
+exclusion on, the satellite family would be unavailable for *every* claim, the
+engine would return a correct-looking `N1 INCONCLUSIVE` citing insufficient
+data, and the system would appear to be behaving conservatively while actually
+being blind. Nobody would notice until somebody asked why nothing is ever
+corroborated — probably a judge.
+
+### Trap 2 — native windows are not stackable
+
+Reading a native window per scene returned shapes `(305, 335)`, `(1119, 335)`
+and `(1119, 1059)` for one AOI across four scenes, because the AOI straddles
+MGRS tile boundaries and each granule covers a different part of it.
+
+`seasonal_composite` refuses a mismatched stack rather than broadcasting
+something plausible, so this surfaced as an exception rather than as silently
+misaligned pixels. **The satellite worker must resample every scene onto a fixed
+per-AOI analysis grid** — district UTM zone, pinned transform and shape — before
+compositing. Added as an M5 requirement.
+
+### Scene-level cloud metadata is optimistic by ~10 pp
+
+Honouring bit 2 (adjacent-to-cloud, 150 m dilation) and bit 3 (shadow) as well
+as bit 1:
+
+| Reported cloud | bit 1 | +adjacent | +shadow | total masked |
+|---|---|---|---|---|
+| 15 % | 10.4 % | 10.9 % | 5.1 % | **24.7 %** |
+| 38 % | 34.4 % | 4.5 % | 4.1 % | 42.3 % |
+| 86 % | 83.0 % | 3.7 % | 4.3 % | 89.9 % |
+
+A scene advertised as 15 % cloudy loses a quarter of its pixels. So
+`data_sufficiency` must be Fmask-derived over the AOI; `eo:cloud_cover` is a
+cheap pre-filter only. Bit 1 itself is confirmed: r = **+0.9969** against
+reported cloud cover across five scenes.
+
+### Validated output — rabi 2024-25, 4 scenes, fixed 1065x1119 grid @ 30 m
+
+| Scene | Meta cloud | AOI usable | AOI cloud |
+|---|---|---|---|
+| 2024-11-06 | 3.0 % | 98.9 % | 0.0 % |
+| 2024-11-06 | 1.0 % | 100.0 % | 0.0 % |
+| 2024-11-11 | 10.0 % | 95.3 % | 1.1 % |
+| 2024-11-11 | 14.0 % | 91.4 % | 3.0 % |
+
+| Index | Median | p10 | p90 | Valid |
+|---|---|---|---|---|
+| NDVI | **+0.5930** | +0.4384 | +0.7100 | 99.0 % |
+| MNDWI | **-0.4479** | -0.4901 | -0.3925 | 99.0 % |
+| BSI | **-0.0847** | -0.1962 | +0.0231 | 99.0 % |
+| NDMI | **+0.1694** | +0.0632 | +0.2776 | 99.0 % |
+
+Water extent (MNDWI > 0): **1,326.6 ha of 1,061 km² observed** — 1.25 %, plausible
+for Marathwada in rabi.
+
+The four indices are **mutually consistent**: high NDVI with negative MNDWI,
+negative BSI and positive NDMI is exactly the signature of irrigated rabi
+cropland. Independent agreement across four different band combinations is
+strong evidence the formulas and the S30/L30 band mapping are right.
