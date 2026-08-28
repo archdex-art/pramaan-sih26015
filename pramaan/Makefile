@@ -49,7 +49,7 @@ purity:
 
 lint:
 	cd backend && uv run ruff check app ../scripts ../tests \
-		&& uv run mypy app/services/reconcile app/services/terrain app/services/photo app/services/satellite app/services/temporal app/services/context app/services/audit --strict
+		&& uv run mypy app/services/reconcile app/services/terrain app/services/photo app/services/satellite app/services/temporal app/services/context app/services/audit app/db app/workers app/api --strict
 
 fmt:
 	cd backend && uv run ruff format app

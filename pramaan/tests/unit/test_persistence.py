@@ -15,6 +15,7 @@ reassurance rather than an error:
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -299,3 +300,63 @@ def test_extra_lineage_is_merged_for_producer_provenance() -> None:
     assert row["lineage"]["analysis_grid"]["epsg"] == 32643
     # Extra lineage must not disturb the digest-bearing bundle payload.
     assert compare_verdicts(v, reconcile(bundle_from_lineage(row["lineage"]))).identical
+
+
+# --- the producer -> task wire format ------------------------------------
+
+
+def test_wire_payload_has_the_same_shape_as_lineage() -> None:
+    """One structure crosses the broker and lands in the `lineage` column.
+
+    If these diverge, the payload proven to reconstruct a byte-identical verdict
+    is not the payload the task actually receives, and the recompute tests stop
+    covering the path that runs in production.
+    """
+    from app.services.audit import wire_payload
+
+    b, v = built(families=all_agreeing(1.0))
+    wire = wire_payload(b)
+    lineage = verdict_row(v, b, claim_id=1, version=1)["lineage"]
+
+    assert set(wire) <= set(lineage), "wire keys must all exist in lineage"
+    assert wire["bundle"] == lineage["bundle"]
+    assert wire["family_reasons"] == lineage["family_reasons"]
+
+
+def test_a_bundle_survives_the_wire_unchanged() -> None:
+    from app.services.audit import wire_payload
+
+    b, v = built(families=all_agreeing(1.0))
+    rebuilt = bundle_from_lineage(wire_payload(b))
+    assert compare_verdicts(v, reconcile(rebuilt)).identical
+
+
+def test_wire_payload_carries_reason_prose() -> None:
+    """`bundle_payload` excludes prose so it cannot affect a digest; the
+    persisted evidence rows still need it, because that is what the UI's
+    evidence tree shows. An earlier draft of the task dropped it."""
+    from app.services.audit import wire_payload
+
+    b = bundle(families=all_agreeing(1.0))
+    reasons = wire_payload(b)["family_reasons"]
+    assert set(reasons) == {f.family for f in b.families}
+    assert all(reasons.values())
+    assert "bundle" in wire_payload(b)
+    assert "reason" not in json.dumps(wire_payload(b)["bundle"]), (
+        "prose must stay out of the digest-bearing half"
+    )
+
+
+def test_wire_payload_records_the_config_fingerprint() -> None:
+    """Otherwise a recompute cannot distinguish "written under today's config"
+    from "config was never recorded"."""
+    from app.services.audit import wire_payload
+
+    b = bundle(families=all_agreeing(1.0))
+    assert wire_payload(b)["bundle"]["config_fingerprint"]
+    drifted = wire_payload(b, EngineConfig(agreeing_threshold=0.9))
+    assert (
+        drifted["bundle"]["config_fingerprint"] != wire_payload(b)["bundle"]["config_fingerprint"]
+    )
+    with pytest.raises(LineageIncomplete, match="does not match the current"):
+        config_from_lineage(drifted)

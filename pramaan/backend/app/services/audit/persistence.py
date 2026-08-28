@@ -61,6 +61,27 @@ class LineageIncomplete(ValueError):
     """
 
 
+def wire_payload(bundle: EvidenceBundle, cfg: EngineConfig | None = None) -> dict[str, Any]:
+    """The producer -> reconciliation wire format.
+
+    Celery serialises task arguments as JSON (see `celery_app`), so producers
+    cannot hand the reconciliation task an `EvidenceBundle` directly. Rather
+    than invent a second format, this returns the **same shape as the `lineage`
+    column**, so `bundle_from_lineage` and `config_from_lineage` consume it
+    unchanged and there is one structure with one set of tests.
+
+    `family_reasons` is carried explicitly because `bundle_payload` excludes
+    prose on purpose - improving an error message must not change a digest. Drop
+    it and the persisted evidence rows lose their reason text, which is what the
+    UI's evidence tree displays.
+    """
+    cfg = cfg or EngineConfig()
+    return {
+        "bundle": bundle_payload(bundle, cfg),
+        "family_reasons": {f.family: f.reason for f in bundle.families},
+    }
+
+
 def verdict_row(
     verdict: Verdict,
     bundle: EvidenceBundle,

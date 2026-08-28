@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
-from app.api.v1 import method
+from app.api.v1 import method, verdicts
 from app.core.config import get_settings
 from app.services.reconcile.weights import ENGINE_VERSION
 
@@ -20,6 +20,7 @@ app = FastAPI(
 )
 
 app.include_router(method.router, prefix="/api/v1")
+app.include_router(verdicts.router, prefix="/api/v1")
 
 
 @app.get("/healthz", tags=["ops"])

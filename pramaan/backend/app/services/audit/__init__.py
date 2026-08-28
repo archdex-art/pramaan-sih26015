@@ -10,6 +10,7 @@ from app.services.audit.persistence import (
     config_from_lineage,
     evidence_rows,
     verdict_row,
+    wire_payload,
 )
 from app.services.audit.reproducibility import (
     DIGEST_VERSION,
@@ -29,6 +30,7 @@ __all__ = [
     "config_from_lineage",
     "evidence_rows",
     "verdict_row",
+    "wire_payload",
     "RecomputeResult",
     "bundle_digest",
     "bundle_payload",

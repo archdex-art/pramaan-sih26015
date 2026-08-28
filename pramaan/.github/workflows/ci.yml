@@ -32,7 +32,7 @@ jobs:
       # The engine is the only module under --strict. It is a pure function and
       # government evidence depends on it; there is no excuse for Any here.
       - name: Type-check reconciliation engine (strict)
-        run: uv run mypy app/services/reconcile app/services/terrain app/services/photo app/services/satellite app/services/temporal app/services/context app/services/audit --strict
+        run: uv run mypy app/services/reconcile app/services/terrain app/services/photo app/services/satellite app/services/temporal app/services/context app/services/audit app/db app/workers app/api --strict
 
       - name: Engine purity (no IO, no clock, no RNG)
         run: uv run pytest ../tests/unit/test_engine_purity.py -q

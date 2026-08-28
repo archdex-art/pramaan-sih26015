@@ -35,7 +35,7 @@ from app.services.reconcile import (  # noqa: E402
     signature_for,
 )
 from app.services.reconcile.dissent import build_dissent, verify_shippable  # noqa: E402
-from app.services.reconcile.engine import _label_for, aggregate_evidence  # noqa: E402
+from app.services.reconcile.engine import aggregate_evidence, label_for  # noqa: E402
 from app.services.reconcile.levels import (  # noqa: E402
     _apply_terrain_contradiction_cap,
     _clamp_to_ceiling,
@@ -224,9 +224,9 @@ def test_signature_keys_match_type_key_field() -> None:
 
 def test_label_falls_through_to_inconclusive_below_partial_floor() -> None:
     cfg = EngineConfig()
-    assert _label_for(Level.L1_OBSERVED, 0.50, cfg) == "CORROBORATED"
-    assert _label_for(Level.L1_OBSERVED, 0.20, cfg) == "PARTIAL"
-    assert _label_for(Level.L1_OBSERVED, 0.05, cfg) == "INCONCLUSIVE"
+    assert label_for(Level.L1_OBSERVED, 0.50, cfg) == "CORROBORATED"
+    assert label_for(Level.L1_OBSERVED, 0.20, cfg) == "PARTIAL"
+    assert label_for(Level.L1_OBSERVED, 0.05, cfg) == "INCONCLUSIVE"
 
 
 # --- clamp / cap defensive branches ---------------------------------------

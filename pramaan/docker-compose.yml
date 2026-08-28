@@ -111,11 +111,50 @@ services:
       timeout: 3s
       retries: 10
 
-  worker:
+  # Two workers, split exactly the way `celery_app` justifies: a district-wide
+  # raster rebuild must not sit in front of a field officer's photo upload.
+  #
+  # `-Q` is not optional. `task_routes` sends every task to a named queue, and a
+  # worker started without `-Q` consumes only the default `celery` queue — so
+  # routed tasks are accepted by the broker and then never run. Found by
+  # enqueuing a real task and watching `llen ingest` stay at 1 while the worker
+  # sat idle. Gate 0's healthcheck task hid it: it has no route, so it lands on
+  # the default queue and always worked.
+  #
+  # `tests/unit/test_queue_wiring.py` asserts every routed queue is consumed.
+  worker-fast:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    command: ["celery", "-A", "app.workers.celery_app", "worker", "--loglevel=INFO"]
+    # `celery` is included here so unrouted tasks (healthcheck) still run.
+    command: ["celery", "-A", "app.workers.celery_app", "worker",
+              "--loglevel=INFO", "-Q", "ingest,infer,celery",
+              "--concurrency", "4", "-n", "fast@%h"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://pramaan:pramaan_dev@postgres:5432/pramaan
+      REDIS_URL: redis://redis:6379/0
+      OBJECT_STORE_ENDPOINT: http://minio:9000
+      OBJECT_STORE_ACCESS_KEY: pramaan
+      OBJECT_STORE_SECRET_KEY: pramaan_dev_key
+    volumes:
+      - ./backend/app:/app/app
+      - ./data:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker-raster:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    # Concurrency 2, not 4: a windowed COG read holds a decompressed tile block
+    # in memory, and these jobs run for minutes. Oversubscribing here is how a
+    # district onboarding gets OOM-killed halfway through.
+    command: ["celery", "-A", "app.workers.celery_app", "worker",
+              "--loglevel=INFO", "-Q", "raster,reports",
+              "--concurrency", "2", "-n", "raster@%h"]
     environment:
       DATABASE_URL: postgresql+psycopg://pramaan:pramaan_dev@postgres:5432/pramaan
       REDIS_URL: redis://redis:6379/0

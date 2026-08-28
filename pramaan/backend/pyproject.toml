@@ -53,6 +53,24 @@ module = "app.services.reconcile.*"
 disallow_any_expr = false
 strict = true
 
+# Celery ships no type information (no py.typed, no stubs on PyPI). Two
+# consequences, both upstream rather than ours, scoped as narrowly as possible
+# so nothing else loses strictness:
+#
+#   1. importing celery is an `import-untyped` error;
+#   2. `@celery_app.task` is therefore an untyped decorator, which under
+#      --strict makes every task it wraps "untyped" too.
+#
+# Task bodies stay fully checked: only the decorator is exempted, and only in
+# app.workers. A task taking an untyped argument would still fail.
+[[tool.mypy.overrides]]
+module = "celery.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "app.workers.*"
+disallow_untyped_decorators = false
+
 [tool.pytest.ini_options]
 testpaths = ["../tests"]
 pythonpath = ["."]

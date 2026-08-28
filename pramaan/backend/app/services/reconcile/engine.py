@@ -70,12 +70,18 @@ def aggregate_evidence(bundle: EvidenceBundle, cfg: EngineConfig) -> Aggregate:
     )
 
 
-def _label_for(level: Level, score: float, cfg: EngineConfig) -> Label:
+def label_for(level: Level, score: float, cfg: EngineConfig) -> Label:
     """Map level plus score to the human-facing label.
 
     Level leads, not score: a contradicted verdict is CONTRADICTED regardless of
     how the arithmetic came out, because the level encodes the exclusion tests
     that the score alone cannot express.
+
+    Public because the API needs it. `label` is not a stored column - it is
+    derived - and the read model must derive it the same way the engine did.
+    An earlier draft of `api/v1/verdicts.py` reimplemented the mapping from
+    `level` alone and got it wrong; that is impossible here, because the label
+    genuinely depends on score as well.
     """
     if level is Level.N3_CONTRADICTED:
         return "CONTRADICTED"
@@ -202,7 +208,7 @@ def reconcile(bundle: EvidenceBundle, cfg: EngineConfig | None = None) -> Verdic
 
     aggregate = aggregate_evidence(bundle, cfg)
     decision = assign_level(bundle, aggregate, cfg, signature)
-    label = _label_for(decision.level, aggregate.score, cfg)
+    label = label_for(decision.level, aggregate.score, cfg)
     dissent = build_dissent(bundle, aggregate, decision.level, cfg, signature)
     action, priority = _recommend(bundle, decision.level, aggregate, cfg, signature)
 

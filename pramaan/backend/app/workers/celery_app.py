@@ -24,7 +24,9 @@ celery_app = Celery(
     "pramaan",
     broker=settings.redis_url,
     backend=settings.redis_url,
-    include=[],
+    # Registered as each stage lands. `reconcile` has no external
+    # dependencies, so it is safe to include from the moment it exists.
+    include=["app.workers.reconcile"],
 )
 
 celery_app.conf.update(
@@ -49,6 +51,9 @@ celery_app.conf.update(
         "app.workers.satellite.*": {"queue": "raster"},
         "app.workers.terrain.*": {"queue": "raster"},
         "app.workers.reports.*": {"queue": "reports"},
+        # Reconciliation is pure CPU and sub-millisecond; it shares the
+        # fast queue rather than waiting behind a raster job.
+        "app.workers.reconcile.*": {"queue": "ingest"},
     },
 )
 

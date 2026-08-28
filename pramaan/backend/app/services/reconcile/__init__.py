@@ -3,7 +3,7 @@
 Public API. Nothing outside this package should import submodules directly.
 """
 
-from app.services.reconcile.engine import aggregate_evidence, reconcile
+from app.services.reconcile.engine import aggregate_evidence, label_for, reconcile
 from app.services.reconcile.signatures import SIGNATURES, Signature, signature_for
 from app.services.reconcile.types import (
     FAMILIES,
@@ -42,6 +42,7 @@ __all__ = [
     "Signature",
     "Verdict",
     "aggregate_evidence",
+    "label_for",
     "reconcile",
     "signature_for",
 ]
