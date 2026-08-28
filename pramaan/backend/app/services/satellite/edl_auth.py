@@ -39,6 +39,19 @@ Resolve the redirect ourselves with the bearer token, then hand GDAL the
 presigned URL with no auth at all. Measured: zero failures across 64 reads at
 1/4/8/12 concurrency.
 
+## A second trap: never probe a presigned URL with HEAD
+
+An AWS presigned URL is signed for **one specific HTTP method**. A `HEAD`
+against a GET-presign returns:
+
+    403 Forbidden  <Error><Code>SignatureDoesNotMatch</Code>
+
+which again reads like an auth failure when the token is perfectly good and
+only the verb is wrong. Anything needing an object's size must use a ranged
+`GET` and read `Content-Range`, which is what
+`scripts/measure_window_cost.py` does. This resolver deliberately exposes no
+size probe so the mistake has nowhere to live.
+
 ## Why not direct S3
 
 LP DAAC publishes an `/s3credentials` endpoint that returns temporary AWS

@@ -1,4 +1,4 @@
-.PHONY: up down seed test test-db golden purity lint fmt demo verify-endpoints examples vocab migrate check bench verify-datasets
+.PHONY: up down seed test test-db golden purity lint fmt demo verify-endpoints examples vocab migrate check bench verify-datasets measure-windows
 
 up:
 	docker compose up --build
@@ -59,6 +59,12 @@ verify-endpoints:
 
 bench:
 	cd backend && uv run python ../scripts/benchmark.py
+
+# Exact windowed-read cost per AOI scale, from the COG's own tile index.
+# Needs EARTHDATA_TOKEN and network, so — like verify-endpoints — deliberately
+# NOT part of `check`. Re-run when the AOI strategy or band list changes.
+measure-windows:
+	uv run --with httpx --with tifffile --with rasterio python scripts/measure_window_cost.py
 
 verify-datasets:
 	uv run --with httpx python scripts/verify_datasets.py --write-docs

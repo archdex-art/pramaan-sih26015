@@ -1,0 +1,72 @@
+{
+  "measured_at": "2026-08-28T07:28:48.138339+00:00",
+  "granule": "https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/HLSS30.020/HLS.S30.T43QGB.2024311T052011.v2.0/HLS.S30.T43QGB.2024311T052011.v2.0.B04.tif",
+  "band_bytes_on_wire": 24269019,
+  "level0_bytes": 17885370,
+  "tile_shape": [
+    256,
+    256
+  ],
+  "grid": [
+    3660,
+    3660
+  ],
+  "band_reads_assumed": 798,
+  "results": [
+    {
+      "aoi": "site + 300 m command buffer",
+      "window_px": [
+        72,
+        76
+      ],
+      "tiles": 4,
+      "bytes": 342163,
+      "fraction_of_band": 0.0141,
+      "budget_gb": 0.27
+    },
+    {
+      "aoi": "micro-watershed",
+      "window_px": [
+        356,
+        374
+      ],
+      "tiles": 4,
+      "bytes": 342163,
+      "fraction_of_band": 0.0141,
+      "budget_gb": 0.27
+    },
+    {
+      "aoi": "sub-watershed (control unit)",
+      "window_px": [
+        1060,
+        1120
+      ],
+      "tiles": 30,
+      "bytes": 2304953,
+      "fraction_of_band": 0.095,
+      "budget_gb": 1.84
+    },
+    {
+      "aoi": "block",
+      "window_px": [
+        2134,
+        2262
+      ],
+      "tiles": 90,
+      "bytes": 7328435,
+      "fraction_of_band": 0.302,
+      "budget_gb": 5.85
+    },
+    {
+      "aoi": "district (Nanded extent)",
+      "window_px": [
+        3589,
+        3660
+      ],
+      "tiles": 225,
+      "bytes": 17885370,
+      "fraction_of_band": 0.737,
+      "budget_gb": 14.27
+    }
+  ]
+}

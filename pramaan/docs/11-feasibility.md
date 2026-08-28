@@ -77,7 +77,7 @@ on the demo VM, which still clears every workload above.
 | Sentinel-2 20 m band (SWIR) | 58 MiB | same |
 | Sentinel-2 SCL mask | 4.5 MiB | same |
 | Full S2 tile, uncompressed | 230 MiB (10,980²  uint16) | opened via GDAL `/vsicurl` |
-| AOI window as fraction of tile | **8.9 %** | 0.30° box against a 110 km tile |
+| AOI window as fraction of tile | **1.4 % – 73.7 %, by AOI scale** | exact, from the COG tile index — see §10 |
 | Windowed read, one band | **1.8 MiB in 2.46 s** | `rasterio` window read over HTTPS |
 | COG overviews present | `[2, 4, 8, 16]` | yes — enables cheap previews |
 
@@ -91,12 +91,20 @@ Demo corpus assumed: 2 districts x 4 HLS tiles x 3 years x 3 seasons
                      x 6 usable scenes x 7 needed bands = 3,024 band-reads
 
 Naive granule download   3,024 x 26.45 MB           = 78 GB
-Windowed COG read        3,024 x 26.45 MB x 0.089   =  7.1 GB
+Windowed COG read (site) 3,024 x 26.45 MB x 0.089   =  7.1 GB
 ```
+
+> **[SUPERSEDED IN PART — see §10.]** The 8.9 % figure is real but it is a
+> *sub-watershed-scale* measurement, and the corpus arithmetic above assumes
+> whole-district composites. Those two are inconsistent: at district scale the
+> fraction is **73.7 %**, not 8.9 %, and windowing saves almost nothing. §10
+> measures the fraction exactly at every AOI scale and revises the budget. The
+> conclusion — windowed reads are essential — survives; the number changed and
+> the AOI unit changed with it.
 
 At a realistic sustained 5 MB/s the naive path is **4.3 hours of pure transfer
 at best**, and in practice much worse against a throttled government or DAAC
-endpoint. The windowed path is ~7 GB.
+endpoint.
 
 Windowed reads are **latency-bound, not bandwidth-bound**: the measured 2.46 s
 for 1.8 MiB is dominated by HTTP range-request round trips, not throughput. So
@@ -485,3 +493,96 @@ The four indices are **mutually consistent**: high NDVI with negative MNDWI,
 negative BSI and positive NDMI is exactly the signature of irrigated rabi
 cropland. Independent agreement across four different band combinations is
 strong evidence the formulas and the S30/L30 band mapping are right.
+
+---
+
+## 10. Window cost by AOI scale — exact, and the AOI unit it dictates
+
+`scripts/measure_window_cost.py`. Reproduce with:
+
+```
+uv run --with httpx --with tifffile --with rasterio python scripts/measure_window_cost.py
+```
+
+### Why this needed re-measuring
+
+§7 recorded "windowed read = 8.9 % of tile" and §2 sized the budget with it —
+but §2's arithmetic assumes **whole-district composites** while the 8.9 %
+was measured on a **sub-watershed-scale box**. Applying one to the other is
+the kind of mistake that produces a plan that is wrong by 8x and looks fine.
+
+### Method — exact, not sampled
+
+A COG stores level-0 pixels as independently compressed tiles with a byte count
+per tile in the TIFF directory. A windowed read fetches exactly the tiles the
+window touches, so the cost is a **sum over the tile index**, not an estimate.
+Reading that index for a band costs **2.0 KiB in 8 range requests** and
+transfers no pixel data at all.
+
+Granule: `HLS.S30.T43QGB.2024311T052011.v2.0.B04.tif` — the same one used for
+the index validation in §9, so the numbers are comparable.
+
+```
+grid               : 3660x3660 @ 30 m, EPSG:32643, footprint 110 x 110 km
+band on wire       : 24.27 MB
+level-0 pixel data : 17.89 MB in 225 tiles of 256x256
+```
+
+### Measured
+
+| AOI scale | window | tiles | MB | % of band | GB budget |
+|---|---|---|---|---|---|
+| site + 300 m command buffer | 72×76 px | 4 | 0.34 | **1.4 %** | 0.3 |
+| micro-watershed | 356×374 px | 4 | 0.34 | **1.4 %** | 0.3 |
+| sub-watershed (control unit) | 1060×1120 px | 30 | 2.30 | **9.5 %** | 1.8 |
+| block | 2134×2262 px | 90 | 7.33 | **30.2 %** | 5.8 |
+| district (Nanded extent) | 3589×3660 px | 225 | 17.89 | **73.7 %** | 14.3 |
+
+GB budget = 798 band-reads (19 season-windows × 6 usable scenes × 7 bands) over
+the 6.4-year span §17.1 actually requires. Raw log: `docs/12-window-cost.log.json`.
+
+### Cross-validation against an independent measurement
+
+§7 read a real (916, 1004) window and observed **1.8 MiB** transferred. The tile
+index predicts **1.37–2.15 MiB** for that window depending on tile alignment.
+The measurement sits inside the predicted range, so two independent methods
+agree and the arithmetic above can be trusted.
+
+### The finding: cost tracks the claim set, not the district
+
+A tile fetched once serves every claim inside it, so the driver is the **spatial
+footprint of the claim set**, not the administrative boundary. Simulated over
+the measured 15×15 tile grid:
+
+| Claim-set footprint | tiles touched | MB / band-scene | budget |
+|---|---|---|---|
+| 200 claims, 3 micro-watersheds (**the demo**) | 27 / 225 | 2.15 | **1.8 GB** |
+| 200 claims, 10 micro-watersheds | 71 / 225 | 5.65 | 3.7 GB |
+| 1,200 claims, 12 micro-watersheds | 107 / 225 | 8.51 | 6.3 GB |
+| 1,200 claims spread district-wide | 222 / 225 | 17.65 | 14.0 GB |
+| whole-district composites | 225 / 225 | 17.89 | 14.3 GB |
+
+### Consequences
+
+1. **The AOI unit is the sub-watershed, not the district.** This is not a
+   compromise: `controls.py` already requires matched controls to come from the
+   **same sub-watershed**, so a sub-watershed AOI covers every pixel the
+   analysis can legitimately use. `grid_for_aoi()` is already per-AOI, so no
+   redesign — the district is simply the wrong argument to pass it.
+2. **Do not build whole-district composites.** 14.3 GB against 1.8 GB for the
+   same 200 claims, for pixels no verdict will ever read.
+3. **§28.2 Phase 1's exit criterion is the expensive shape.** "3 years of index
+   stacks for 2-3 districts on disk" should read *sub-watersheds selected,
+   6.4-year index stacks for the claim set's sub-watersheds on disk*. The
+   3-year figure is separately wrong: §17.1's ±24-month windows plus the
+   2-full-years-per-side rule need **6.4 years**.
+4. **Demo imagery budget: 1.8 GB, not 7.1 GB.** R-40 downgrades from
+   "mitigated architectural constraint" to comfortably inside a venue's disk.
+
+### A trap worth recording
+
+An AWS presigned URL is signed for **one HTTP method**. A `HEAD` against a
+GET-presign returns **403 Forbidden** with a signature error that reads exactly
+like an auth failure — the token is fine, the method is wrong. Size must come
+from a ranged `GET` and its `Content-Range`. This is why `EdlResolver` has no
+size probe, and it cost a debugging cycle to find.
