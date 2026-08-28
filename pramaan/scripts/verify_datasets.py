@@ -315,9 +315,13 @@ SOURCES: list[Source] = [
         key="mapillary",
         name="Mapillary street-level imagery API v4",
         url="https://graph.mapillary.com/images",
-        use="THE most relevant ground-photo source for India: geotagged, "
-        "camera-bearing, roadside imagery covering rural roads. Mine within the "
-        "demo districts for ponds, tanks, bunds, gullies and bare fields.",
+        use="REJECTED for GT-1 after measurement. Coverage in the 7 candidate "
+        "Marathwada districts is 0-5% of 2.2 km cells and follows national "
+        "highways only; sampled frames are windscreen dashcam views of divided "
+        "carriageway, crash barriers and sky. Watershed structures are "
+        "off-highway by definition, so this source cannot supply the GT-1 label "
+        "set. Retained only as a marginal source for nala culverts where a "
+        "highway crosses a drainage line. See the measured table below.",
         licence="CC-BY-SA 4.0 (verified on Mapillary's licence page). ShareAlike "
         "means derived annotation sets must be shared alike - fine for us, we "
         "publish GT-1 anyway.",
@@ -473,6 +477,53 @@ def render(results: list[Result]) -> str:
         lines.append(f"**{r.name}** ({r.asset}) — {r.use}")
         lines.append("")
     lines += [
+        "## Measured Mapillary coverage — why it was rejected for GT-1",
+        "",
+        "Measured 2026-08-28 with an authenticated token, 60 random 0.02 deg",
+        "(~2.2 km) cells per district, `limit=2000`, seed 42.",
+        "",
+        "| District | cells | sampled | covered | coverage | imgs | median/cell |",
+        "|---|---|---|---|---|---|---|",
+        "| Nanded | 5,893 | 60 | 1 | 1.7% | 121 | 121 |",
+        "| Latur | 2,592 | 60 | 0 | **0.0%** | 0 | 0 |",
+        "| Dharashiv | 3,900 | 60 | 3 | 5.0% | 162 | 51 |",
+        "| Beed | 4,320 | 60 | 1 | 1.7% | 45 | 45 |",
+        "| Parbhani | 2,430 | 60 | 0 | **0.0%** | 0 | 0 |",
+        "| Hingoli | 2,256 | 60 | 0 | **0.0%** | 0 | 0 |",
+        "| Jalna | 3,008 | 60 | 2 | 3.3% | 191 | 144 |",
+        "",
+        "Covered cells reverse-geocode to villages on national-highway corridors",
+        "(Indalwai, Kamti Bk, Sawaleshwar, Suratgaon, Kumbefal, Khadgaon), so the",
+        "coverage is rural - but it is *highway* rural. Twelve frames were pulled",
+        "and inspected: every one is a windscreen-mounted dashcam view of divided",
+        "carriageway with crash barriers, roadside scrub and sky (two were more",
+        "than half sky). None contained a water-harvesting structure, a water",
+        "body, croplands at usable scale, or a gully.",
+        "",
+        "**Verdict: rejected for GT-1.** The failure is structural, not a sampling",
+        "artefact. Coverage follows highways; watershed interventions sit in",
+        "fields, on nalas and in upper catchments, which is precisely where no",
+        "vehicle drives. A forward-facing camera at highway speed cannot frame",
+        "them even where it passes nearby.",
+        "",
+        "### Three measurement traps caught in this exercise",
+        "",
+        "1. **HTTP 500 means *too much data*, not *no data*.** Mapillary returns",
+        '   `500 {"message":"Please reduce the amount of data you are asking',
+        '   for"}` for dense bboxes, at *any* `limit`. A first pass recorded 500',
+        "   as zero, which would have counted the densest cells as empty. Re-run",
+        "   with three-way accounting (empty / counted / dense) showed zero dense",
+        "   cells in Marathwada, so the sparse result held - but it held by luck,",
+        "   not by method.",
+        "2. **`limit` truncates silently.** Nanded town centre returns 476 images",
+        "   at `limit=500` and 1,124 at `limit=2000`. Any density figure quoted",
+        "   without stating its limit is meaningless.",
+        "3. **Axis order.** Cell centres were stored as `(lon, lat)` and passed to",
+        "   a geocoder expecting `(lat, lon)`. Every lookup silently resolved to",
+        "   the Arctic and returned blanks. This is the exact class of bug docs",
+        "   §20.1 cites as justification for TypeScript on the frontend, and it",
+        "   is why `geo/crs/policy.py` exists as a single enforcement point.",
+        "",
         "## Measured OSM coverage — why OSM cannot be the GT-2 reference set",
         "",
         "**Provenance of these counts.** They were captured on 2026-08-28 from a",
