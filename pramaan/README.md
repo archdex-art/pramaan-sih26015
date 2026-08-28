@@ -16,6 +16,15 @@ pipeline. It does not replace Bhuvan. It answers the question Bhuvan does not:
 *"does the satellite record agree with the photograph, and did the structure
 change anything?"*
 
+## Running it
+
+**See [RUNNING.md](RUNNING.md).** Two commands:
+
+```bash
+make demo-up   # stack + migrations + seeds
+make web       # console on http://127.0.0.1:5173
+```
+
 ## Quickstart
 
 ```bash

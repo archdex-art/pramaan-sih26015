@@ -1,4 +1,4 @@
-.PHONY: up down seed seed-golden series terrain web web-check test test-db golden purity lint fmt demo verify-endpoints examples vocab migrate check bench verify-datasets measure-windows
+.PHONY: up down demo-up seed seed-golden series terrain web web-check test test-db golden purity lint fmt demo verify-endpoints examples vocab migrate check bench verify-datasets measure-windows
 
 up:
 	docker compose up --build
@@ -8,14 +8,24 @@ down:
 
 # Seeds the demo claim from measured HLS data. Requires
 # `data/demo/temporal_series.json`, built by `make series` (needs credentials).
+# Seeding runs on the HOST against the containerised Postgres, not inside the
+# api container. The image copies only `app/` (see backend/Dockerfile), so
+# `docker compose exec api python scripts/...` cannot work — there is no
+# scripts/ in the container, and the repo-relative data paths the scripts use
+# would not resolve there either. Found by trying it.
+PG_URL = postgresql+psycopg://pramaan:pramaan_dev@127.0.0.1:$(or $(PRAMAAN_PG_PORT),55432)/pramaan
+SEED_DEPS = --with 'psycopg[binary]' --with numpy --with sqlalchemy --with celery \
+	--with pydantic-settings --with fastapi
+
 seed:
-	docker compose exec api python scripts/seed_demo.py
+	DATABASE_URL="$(PG_URL)" uv run $(SEED_DEPS) python scripts/seed_demo.py
 
 # Seeds the 23 golden cases into the register as badged synthetic claims, so the
 # console demonstrates all eight epistemic levels. Every row is stamped
 # `provenance: golden` and rendered with a badge at chip size.
 seed-golden:
-	cd backend && uv run --with pyyaml --with pytest python ../scripts/seed_golden.py
+	DATABASE_URL="$(PG_URL)" uv run $(SEED_DEPS) --with pyyaml --with pytest \
+		python scripts/seed_golden.py
 
 # Rebuilds the measured seasonal index series from real NASA HLS granules.
 # Needs EARTHDATA_TOKEN and network; not part of `check`, same rule as
@@ -92,6 +102,21 @@ vocab:
 
 migrate:
 	docker compose run --rm migrate
+
+# The whole demo, in order: stack, migrations, both seeds, then the console.
+# Run this and nothing else.
+demo-up:
+	docker compose up -d --build --remove-orphans
+	@echo "waiting for postgres…"
+	@ok=0; for i in $$(seq 1 90); do \
+		if docker compose exec -T postgres pg_isready -U pramaan -d pramaan >/dev/null 2>&1; \
+		then ok=$$((ok+1)); else ok=0; fi; \
+		[ $$ok -ge 3 ] && break; sleep 1; done
+	$(MAKE) seed
+	$(MAKE) seed-golden
+	@echo ""
+	@echo "API      http://127.0.0.1:8000/api/v1/docs"
+	@echo "next     make web     (console on http://127.0.0.1:5173)"
 
 # NASADEM -> hydrology -> covariates -> matched controls. Needs EARTHDATA_TOKEN
 # and the .hgt tiles in data/demo/dem. ~4 s once the tiles are cached.
