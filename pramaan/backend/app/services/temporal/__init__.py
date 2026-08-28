@@ -8,6 +8,12 @@ from app.services.temporal.controls import (
     compare_to_controls,
     select_controls,
 )
+from app.services.temporal.evidence import (
+    TemporalAssessment,
+    assess,
+    to_control_evidence,
+    to_temporal_evidence,
+)
 from app.services.temporal.seasons import (
     CrossSeasonComparison,
     Season,
@@ -27,6 +33,10 @@ from app.services.temporal.windows import (
 
 __all__ = [
     "AnalysisWindows",
+    "TemporalAssessment",
+    "assess",
+    "to_control_evidence",
+    "to_temporal_evidence",
     "ControlCandidate",
     "ControlComparison",
     "ControlSet",

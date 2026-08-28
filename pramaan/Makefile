@@ -20,7 +20,7 @@ purity:
 
 lint:
 	cd backend && uv run ruff check app ../scripts ../tests \
-		&& uv run mypy app/services/reconcile app/services/terrain app/services/photo app/services/satellite app/services/temporal --strict
+		&& uv run mypy app/services/reconcile app/services/terrain app/services/photo app/services/satellite app/services/temporal app/services/context --strict
 
 fmt:
 	cd backend && uv run ruff format app
@@ -48,7 +48,7 @@ check: lint
 	cd backend && uv run pytest ../tests -q \
 		--cov=app.services.reconcile --cov=app.services.terrain \
 		--cov=app.services.photo --cov=app.services.satellite \
-		--cov=app.services.temporal \
+		--cov=app.services.temporal --cov=app.services.context \
 		--cov-branch --cov-fail-under=100
 	uv run --with pyyaml python scripts/vocabulary_lint.py
 	cd backend && uv run python ../scripts/render_worked_examples.py --check
