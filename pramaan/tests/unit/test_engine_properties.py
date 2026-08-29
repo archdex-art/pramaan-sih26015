@@ -22,7 +22,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from conftest import all_agreeing, bundle, fam, gates  # noqa: E402
+from bundles import all_agreeing, bundle, fam, gates  # noqa: E402
 
 from app.services.reconcile import (  # noqa: E402
     FAMILIES,

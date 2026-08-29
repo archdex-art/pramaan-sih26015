@@ -8,6 +8,8 @@
  * than it saves.
  */
 
+import { authFetch } from "./auth";
+
 /** Epistemic level. Level says *how strongly known*; label says *what*. */
 export type Level =
   | "L0_recorded"
@@ -111,23 +113,13 @@ export class ApiError extends Error {
 }
 
 async function get<T>(path: string): Promise<T> {
-  // `no-store`: every one of these reads mutable state. A register showing a
-  // stale verdict after a reconciliation has run is worse than a slow one, and
-  // the browser did exactly that during development — the DB held new rows and
-  // the table kept rendering the previous response.
-  const response = await fetch(path, {
-    headers: { Accept: "application/json" },
-    cache: "no-store",
-  });
+  // Auth-aware fetch that injects the access token and retries once on 401.
+  const response = await authFetch(path);
   if (!response.ok) {
-    // Surface the API's own reason. A generic "failed to load" would hide
-    // "reconciliation has not run", which is a different problem with a
-    // different fix and the API already says which one it is.
     let detail = response.statusText;
     try {
       const body: unknown = await response.json();
       if (body && typeof body === "object" && "detail" in body) {
-        // `in` narrows body.detail to unknown; no assertion needed.
         detail = String(body.detail);
       }
     } catch {
@@ -267,3 +259,69 @@ export interface PlanMap {
 
 export const fetchMap = (claimId: number): Promise<PlanMap> =>
   get<PlanMap>(`/api/v1/claims/${claimId}/map`);
+
+// --- adjudication (S9) ----------------------------------------------------
+
+export type Decision = "accept" | "edit" | "reject";
+
+export interface AdjudicationResult {
+  id: number;
+  verdict_id: number;
+  decision: string;
+  corrected_level: string | null;
+  reason: string | null;
+  decided_at: string;
+  signed_by_username: string;
+  signed_by_name: string;
+  prev_hash: string;
+  row_hash: string;
+}
+
+export interface ChainReport {
+  valid: boolean;
+  rows: number;
+  broken_at: number | null;
+  reason: string | null;
+  statement: string;
+}
+
+export interface LedgerEntry {
+  id: number;
+  verdict_id: number;
+  decision: string;
+  corrected_level: string | null;
+  reason: string | null;
+  decided_at: string;
+  signed_by_username: string;
+  signed_by_name: string;
+  row_hash: string;
+}
+
+async function post<T>(path: string, body: unknown): Promise<T> {
+  const response = await authFetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    let detail = response.statusText;
+    try {
+      const b: unknown = await response.json();
+      if (b && typeof b === "object" && "detail" in b) detail = String(b.detail);
+    } catch { /* non-JSON */ }
+    throw new ApiError(response.status, detail);
+  }
+  return (await response.json()) as T;
+}
+
+export const adjudicate = (
+  verdictId: number,
+  body: { decision: Decision; corrected_level?: string; reason?: string },
+): Promise<AdjudicationResult> =>
+  post(`/api/v1/verdicts/${verdictId}/adjudicate`, body);
+
+export const fetchChainReport = (): Promise<ChainReport> =>
+  get("/api/v1/ledger/verify");
+
+export const fetchLedger = (): Promise<LedgerEntry[]> =>
+  get("/api/v1/ledger");

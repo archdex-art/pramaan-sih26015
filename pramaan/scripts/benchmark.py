@@ -26,7 +26,7 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "backend"))
 sys.path.insert(0, str(REPO / "tests"))
 
-from conftest import bundle, fam, gates  # noqa: E402
+from bundles import bundle, fam, gates  # noqa: E402
 
 from app.services.reconcile import EngineConfig, reconcile  # noqa: E402
 from app.services.reconcile.types import FAMILIES  # noqa: E402

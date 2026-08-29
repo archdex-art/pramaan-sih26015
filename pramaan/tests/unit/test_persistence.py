@@ -25,7 +25,7 @@ BACKEND = Path(__file__).resolve().parents[2] / "backend"
 if str(BACKEND) not in sys.path:
     sys.path.insert(0, str(BACKEND))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from conftest import all_agreeing, bundle, fam, gates  # noqa: E402
+from bundles import all_agreeing, bundle, fam, gates  # noqa: E402
 
 from app.services.audit import (  # noqa: E402
     LineageIncomplete,

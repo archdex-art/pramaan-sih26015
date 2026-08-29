@@ -31,6 +31,9 @@ from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.api.deps import CurrentScope, require
+from app.api.scope import require_claim_visible
+from app.core.authz import Capability
 from app.db.session import db_session
 
 router = APIRouter(tags=["temporal"])
@@ -132,8 +135,13 @@ def _band(raw: dict[str, Any]) -> ControlBand:
     )
 
 
-@router.get("/claims/{claim_id}/temporal", response_model=TemporalOut)
-def get_temporal(claim_id: int, session: DbSession) -> TemporalOut:
+@router.get(
+    "/claims/{claim_id}/temporal",
+    response_model=TemporalOut,
+    dependencies=[Depends(require(Capability.EVIDENCE_READ))],
+)
+def get_temporal(claim_id: int, session: DbSession, scope: CurrentScope) -> TemporalOut:
+    require_claim_visible(session, scope, claim_id)
     claim = session.execute(_SELECT_CLAIM, {"claim_id": claim_id}).first()
     if claim is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"claim {claim_id} does not exist")

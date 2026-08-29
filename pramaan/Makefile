@@ -1,4 +1,4 @@
-.PHONY: up down demo-up video seed seed-golden series terrain map web web-check test test-db golden purity lint fmt demo verify-endpoints examples vocab migrate check bench verify-datasets measure-windows
+.PHONY: up down demo-up video seed seed-users seed-golden series terrain map web web-check test test-db golden purity lint fmt demo verify-endpoints examples vocab migrate check bench verify-datasets measure-windows
 
 up:
 	docker compose up --build
@@ -23,6 +23,12 @@ seed:
 # Seeds the 23 golden cases into the register as badged synthetic claims, so the
 # console demonstrates all eight epistemic levels. Every row is stamped
 # `provenance: golden` and rendered with a badge at chip size.
+# One account per government role, across two districts so jurisdiction
+# scoping is falsifiable rather than merely asserted.
+seed-users:
+	cd backend && DATABASE_URL="$(PG_URL)" \
+		uv run --with "psycopg[binary]" python ../scripts/seed_users.py
+
 seed-golden:
 	DATABASE_URL="$(PG_URL)" uv run $(SEED_DEPS) --with pyyaml --with pytest \
 		python scripts/seed_golden.py
@@ -64,7 +70,10 @@ test-db:
 	$$A upgrade head && \
 	$$A downgrade base && $$A upgrade head && \
 	cd ../backend && PRAMAAN_TEST_DSN="$(TEST_DSN)" \
-		uv run --with 'psycopg[binary]' pytest ../tests/integration -q
+		uv run --with 'psycopg[binary]' pytest ../tests -q \
+		--cov=app.services.audit --cov-branch --cov-fail-under=100 && \
+	echo "--- ledger chain verifier (the auditor's offline path) ---" && \
+	uv run --with 'psycopg[binary]' python ../scripts/verify_ledger_chain.py
 
 golden:
 	cd backend && uv run pytest ../tests/golden -q
@@ -75,6 +84,8 @@ purity:
 lint:
 	cd backend && uv run ruff check app ../scripts ../tests \
 		&& uv run mypy app/services/reconcile app/services/terrain app/services/photo app/services/satellite app/services/temporal app/services/context app/services/audit app/db app/workers app/api --strict
+	python3 scripts/lint_css_tokens.py
+	cd frontend && npx tsc -b --noEmit
 
 fmt:
 	cd backend && uv run ruff format app
@@ -147,12 +158,19 @@ web-check:
 	cd frontend && npm ci && npx tsc -b --noEmit && npm run build
 
 # Everything CI runs, in CI's order. Run this before pushing.
+#
+# `app.services.audit.ledger` is gated by `test-db`, not here. Its write path
+# (`append`, `read_chain`) cannot execute without a server, so demanding 100 %
+# of it from an offline run would only be satisfiable by pragmas — which is
+# hiding the gap rather than closing it. `test-db` runs the whole suite with a
+# database and gates the same package at 100 %, so nothing is ungated.
 check: lint
 	cd backend && uv run pytest ../tests -q \
 		--cov=app.services.reconcile --cov=app.services.terrain \
 		--cov=app.services.photo --cov=app.services.satellite \
 		--cov=app.services.temporal --cov=app.services.context \
-		--cov=app.services.audit \
+		--cov=app.services.audit.persistence \
+		--cov=app.services.audit.reproducibility \
 		--cov-branch --cov-fail-under=100
 	uv run --with pyyaml python scripts/vocabulary_lint.py
 	cd backend && uv run python ../scripts/render_worked_examples.py --check

@@ -24,6 +24,11 @@ class Settings(BaseSettings):
     object_store_access_key: str = Field(default="pramaan")
     object_store_secret_key: str = Field(default="pramaan_dev_key")
 
+    # Signing keys live outside the repo tree by default in production; the
+    # dev default is gitignored. There is deliberately no default *secret* —
+    # only a default *location*.
+    jwt_key_dir: str = Field(default=".keys")
+
     jwt_access_ttl_minutes: int = 20
     jwt_refresh_ttl_hours: int = 12
 

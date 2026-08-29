@@ -2,7 +2,15 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
-from app.api.v1 import claims, mapview, method, temporal, verdicts
+from app.api.v1 import (
+    adjudication,
+    auth,
+    claims,
+    mapview,
+    method,
+    temporal,
+    verdicts,
+)
 from app.core.config import get_settings
 from app.services.reconcile.weights import ENGINE_VERSION
 
@@ -22,6 +30,8 @@ app = FastAPI(
 app.include_router(method.router, prefix="/api/v1")
 app.include_router(verdicts.router, prefix="/api/v1")
 app.include_router(temporal.router, prefix="/api/v1")
+app.include_router(auth.router, prefix="/api/v1")
+app.include_router(adjudication.router, prefix="/api/v1")
 app.include_router(mapview.router, prefix="/api/v1")
 app.include_router(claims.router, prefix="/api/v1")
 

@@ -29,11 +29,14 @@ from __future__ import annotations
 
 from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.api.deps import CurrentScope, require
+from app.api.scope import register_clause, require_claim_visible
+from app.core.authz import Capability
 from app.db.session import db_session
 from app.services.reconcile import EngineConfig, label_for
 from app.services.reconcile.types import Level
@@ -47,7 +50,11 @@ Provenance = Literal["measured", "golden"]
 # One row per claim, joined to its highest verdict version. `DISTINCT ON` is
 # PostgreSQL-specific and is the right tool: a correlated subquery or a window
 # filter would both be slower and less readable for exactly this shape.
-_REGISTER = text("""
+# A template, not a `text()`: the jurisdiction predicate is spliced in from
+# `scope.register_clause`, which returns a fixed fragment from a closed set —
+# never caller input. The bind parameter it pairs with is still bound, so the
+# district value itself never reaches the SQL string.
+_REGISTER_SQL = """
 SELECT DISTINCT ON (c.id)
        c.id                AS claim_id,
        i.unique_id         AS unique_id,
@@ -76,8 +83,9 @@ SELECT DISTINCT ON (c.id)
 FROM claims c
 JOIN interventions i ON i.id = c.intervention_id
 LEFT JOIN verdicts v ON v.claim_id = c.id
+WHERE {scope}
 ORDER BY c.id, v.version DESC
-""")
+"""
 
 _EVIDENCE = text("""
 SELECT family, agreement, available, payload, lineage, computed_at
@@ -172,14 +180,20 @@ def _provenance(note: Any) -> Provenance:
     return "golden"
 
 
-@router.get("/claims", response_model=list[RegisterRow])
+@router.get(
+    "/claims",
+    response_model=list[RegisterRow],
+    dependencies=[Depends(require(Capability.CLAIM_READ))],
+)
 def list_claims(
     session: DbSession,
+    scope: CurrentScope,
     level: Annotated[str | None, Query(description="filter by epistemic level")] = None,
     provenance: Annotated[Provenance | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=500)] = 100,
 ) -> list[RegisterRow]:
-    rows = session.execute(_REGISTER).mappings().all()
+    clause, params = register_clause(scope)
+    rows = session.execute(text(_REGISTER_SQL.format(scope=clause)), params).mappings().all()
     cfg = EngineConfig()
 
     out: list[RegisterRow] = []
@@ -227,10 +241,17 @@ def list_claims(
     return out[:limit]
 
 
-@router.get("/claims/{claim_id}/evidence", response_model=EvidenceTree)
-def get_evidence(claim_id: int, session: DbSession) -> EvidenceTree:
-    if session.execute(_CLAIM_EXISTS, {"claim_id": claim_id}).first() is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, f"claim {claim_id} does not exist")
+@router.get(
+    "/claims/{claim_id}/evidence",
+    response_model=EvidenceTree,
+    dependencies=[Depends(require(Capability.EVIDENCE_READ))],
+)
+def get_evidence(claim_id: int, session: DbSession, scope: CurrentScope) -> EvidenceTree:
+    # Jurisdiction first. `require_claim_visible` also covers "does not exist",
+    # so the old existence check is gone rather than duplicated — two checks
+    # returning different bodies for the same condition is how a 403/404 oracle
+    # gets reintroduced.
+    require_claim_visible(session, scope, claim_id)
 
     rows = {
         row["family"]: row for row in session.execute(_EVIDENCE, {"claim_id": claim_id}).mappings()

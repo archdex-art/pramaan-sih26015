@@ -57,6 +57,19 @@ def _point_app_at_the_test_database():
     get_settings.cache_clear()
     get_engine.cache_clear()
     get_sessionmaker.cache_clear()
+
+    # Every claim, evidence and verdict route is capability-gated (docs §25),
+    # so the suite needs a real account rather than a bypass. Seeding through
+    # the production seeder means these tests exercise the same password
+    # policy, role rows and scope columns a deployment gets - a dependency
+    # override would prove the handlers work while proving nothing about the
+    # authorisation that guards them.
+    scripts = str(Path(__file__).resolve().parents[2] / "scripts")
+    if scripts not in sys.path:
+        sys.path.insert(0, scripts)
+    import seed_users
+
+    seed_users.main()
     yield
     get_settings.cache_clear()
     get_engine.cache_clear()
@@ -132,7 +145,7 @@ def _payload(**kwargs):  # type: ignore[no-untyped-def]
     Shaped exactly like the `lineage` column, which is why the same
     `bundle_from_lineage` consumes both.
     """
-    from conftest import all_agreeing, bundle
+    from bundles import all_agreeing, bundle
 
     from app.services.audit import wire_payload
 
@@ -140,12 +153,43 @@ def _payload(**kwargs):  # type: ignore[no-untyped-def]
     return wire_payload(bundle(**kwargs))
 
 
+#: The officer these tests act as. `wcdc.nanded` rather than `admin.dolr`
+#: because DOLR_ADMIN deliberately does not hold VERDICT_RECOMPUTE, and its
+#: scope district (520) matches the claims the fixtures build.
+OFFICER_USERNAME = "wcdc.nanded"
+
+_token: str | None = None
+
+
+def _access_token() -> str:
+    """Log in once per module and reuse the token.
+
+    Argon2 verification is deliberately expensive, so re-authenticating for
+    each of two dozen tests would dominate the suite's runtime for no extra
+    coverage - the login path itself is asserted once, here.
+    """
+    global _token
+    if _token is None:
+        from fastapi.testclient import TestClient
+        from seed_users import PASSWORD
+
+        from app.main import app
+
+        r = TestClient(app).post(
+            "/api/v1/auth/login",
+            json={"username": OFFICER_USERNAME, "password": PASSWORD},
+        )
+        assert r.status_code == 200, f"login failed: {r.status_code} {r.text}"
+        _token = str(r.json()["access_token"])
+    return _token
+
+
 def _client():  # type: ignore[no-untyped-def]
     from fastapi.testclient import TestClient
 
     from app.main import app
 
-    return TestClient(app)
+    return TestClient(app, headers={"Authorization": f"Bearer {_access_token()}"})
 
 
 # --- the task ------------------------------------------------------------
@@ -223,7 +267,7 @@ def test_second_run_appends_a_version_and_supersedes_the_first(claim_id: int) ->
 def test_an_unavailable_family_lowers_coverage_rather_than_failing(claim_id: int) -> None:
     """A cloud gap must not void a verdict. The task must still persist one,
     with the gap disclosed in the dissent panel."""
-    from conftest import fam
+    from bundles import fam
 
     from app.workers.reconcile import reconcile_claim
 
@@ -284,7 +328,7 @@ def test_unknown_ids_are_404_not_500() -> None:
 )
 def test_recompute_through_the_api_is_identical(claim_id: int, families_key: str) -> None:
     """docs §21.3, as an HTTP request a judge can click."""
-    from conftest import all_agreeing, fam, gates
+    from bundles import all_agreeing, fam, gates
 
     from app.services.reconcile import Alternative
     from app.workers.reconcile import reconcile_claim
@@ -400,7 +444,7 @@ def test_evidence_is_updated_in_place_not_duplicated(claim_id: int) -> None:
     """`UNIQUE (claim_id, family, district_lgd)` makes evidence current-state.
     Versioned history lives in each verdict's immutable lineage instead, so
     there is exactly one place an auditor reads history from."""
-    from conftest import fam
+    from bundles import fam
 
     from app.workers.reconcile import reconcile_claim
 
@@ -439,8 +483,8 @@ def test_api_label_matches_the_engine_not_a_reimplementation(claim_id: int, case
     "L4_control_differenced" where the engine said "CORROBORATED". Both cases
     here sit at the same level, so that shortcut fails one of them.
     """
-    from conftest import bundle as make_bundle
-    from conftest import fam
+    from bundles import bundle as make_bundle
+    from bundles import fam
 
     from app.services.audit import wire_payload
     from app.services.reconcile import reconcile
@@ -476,8 +520,8 @@ def test_api_label_matches_the_engine_not_a_reimplementation(claim_id: int, case
 
 def _seed_temporal(claim_id: int) -> int:
     """Reconcile a claim whose temporal family carries an observed series."""
-    from conftest import bundle as make_bundle
-    from conftest import fam
+    from bundles import bundle as make_bundle
+    from bundles import fam
 
     from app.services.audit import wire_payload
     from app.services.reconcile import EvidenceBundle, FamilyEvidence
@@ -605,7 +649,7 @@ def test_temporal_endpoint_404s_when_reconciliation_has_not_run(claim_id: int) -
 def test_temporal_endpoint_422s_when_the_series_was_not_retained(claim_id: int) -> None:
     """An empty ribbon over an empty axis reads as "nothing happened", which is
     a different claim from "not recorded". So this refuses rather than draws."""
-    from conftest import all_agreeing
+    from bundles import all_agreeing
 
     from app.workers.reconcile import reconcile_claim
 
@@ -617,8 +661,8 @@ def test_temporal_endpoint_422s_when_the_series_was_not_retained(claim_id: int) 
 
 def _seed_matched_controls(claim_id: int) -> None:
     """A claim whose control family is available and covariate-matched."""
-    from conftest import bundle as make_bundle
-    from conftest import fam
+    from bundles import bundle as make_bundle
+    from bundles import fam
 
     from app.services.audit import wire_payload
     from app.services.reconcile import EvidenceBundle, FamilyEvidence

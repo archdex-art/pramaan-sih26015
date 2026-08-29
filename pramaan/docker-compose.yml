@@ -93,9 +93,14 @@ services:
       OBJECT_STORE_ACCESS_KEY: pramaan
       OBJECT_STORE_SECRET_KEY: pramaan_dev_key
       PRAMAAN_OFFLINE: "0"
+      JWT_KEY_DIR: /keys
     volumes:
       - ./backend/app:/app/app
       - ./data:/data
+      # The signing keypair must outlive the container. Without this volume a
+      # restart mints a new key and silently invalidates every live session —
+      # which reads to a user as "the app logged me out for no reason".
+      - jwt_keys:/keys
     ports:
       - "${PRAMAAN_API_PORT:-8000}:8000"
     depends_on:
@@ -179,3 +184,4 @@ services:
 volumes:
   pg_data:
   minio_data:
+  jwt_keys:

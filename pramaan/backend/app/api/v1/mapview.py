@@ -39,6 +39,9 @@ from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.api.deps import CurrentScope, require
+from app.api.scope import require_claim_visible
+from app.core.authz import Capability
 from app.db.session import db_session
 
 router = APIRouter(tags=["map"])
@@ -129,8 +132,13 @@ def _load() -> dict[str, Any] | None:
     return dict(json.loads(LAYERS.read_text(encoding="utf-8")))
 
 
-@router.get("/claims/{claim_id}/map", response_model=MapOut)
-def get_map(claim_id: int, session: DbSession) -> MapOut:
+@router.get(
+    "/claims/{claim_id}/map",
+    response_model=MapOut,
+    dependencies=[Depends(require(Capability.EVIDENCE_READ))],
+)
+def get_map(claim_id: int, session: DbSession, scope: CurrentScope) -> MapOut:
+    require_claim_visible(session, scope, claim_id)
     row = session.execute(_CLAIM, {"claim_id": claim_id}).mappings().first()
     if row is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"claim {claim_id} does not exist")

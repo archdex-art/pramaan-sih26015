@@ -50,6 +50,10 @@ jobs:
       # without mocking, and they are the modules whose bugs become government
       # evidence. IO-bound producers (satellite, ingestion) get behavioural
       # tests instead — demanding 100% there would buy mocks, not correctness.
+      #
+      # `app.services.audit.ledger` is gated by the `database` job below, not
+      # here: its write path cannot execute without a server, so demanding
+      # 100% of it from this job would only be satisfiable by pragmas.
       - name: Tests + deterministic-core coverage gate
         run: >
           uv run pytest ../tests -q
@@ -59,7 +63,8 @@ jobs:
           --cov=app.services.satellite
           --cov=app.services.temporal
           --cov=app.services.context
-          --cov=app.services.audit
+          --cov=app.services.audit.persistence
+          --cov=app.services.audit.reproducibility
           --cov-branch
           --cov-report=term-missing
           --cov-fail-under=100
@@ -107,11 +112,29 @@ jobs:
           uv run --with 'psycopg[binary]' --with alembic alembic downgrade base
           uv run --with 'psycopg[binary]' --with alembic alembic upgrade head
 
-      - name: Verdict recompute through real PostGIS
+      # The whole suite, not just tests/integration: with a database present the
+      # ledger's write path is reachable, so this is the only job that can gate
+      # `app.services.audit` at 100% honestly.
+      - name: Full suite + ledger coverage gate through real PostGIS
         working-directory: backend
         env:
           PRAMAAN_TEST_DSN: host=127.0.0.1 port=5432 user=postgres password=t dbname=t
-        run: uv run --with 'psycopg[binary]' pytest ../tests/integration -q
+        run: >
+          uv run --with 'psycopg[binary]' pytest ../tests -q
+          --cov=app.services.audit
+          --cov-branch
+          --cov-report=term-missing
+          --cov-fail-under=100
+
+      # The offline sibling of GET /api/v1/ledger/verify. An auditor must be
+      # able to check chain integrity from psql without the application, so the
+      # script that does it has to keep working — it was previously wired into
+      # neither CI nor the Makefile, which is how such a script quietly rots.
+      - name: The ledger chain verifier still runs
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql+psycopg://postgres:t@127.0.0.1:5432/t
+        run: uv run --with 'psycopg[binary]' python ../scripts/verify_ledger_chain.py
 
   frontend:
     # Typecheck only. The chart is verified by driving it in a browser, which is

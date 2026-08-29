@@ -14,13 +14,28 @@
 .rail {
   display: flex;
   flex-direction: column;
-  gap: var(--s5);
+  gap: var(--s4);
   padding: var(--s5) var(--s4);
   border-right: 1px solid var(--rule);
   background: var(--paper-3);
   position: sticky;
   top: 0;
-  height: 100vh;
+  /* Clamped to the viewport and scrollable. It was `height: 100vh` with no
+   * overflow rule, so on any viewport shorter than ~1000px the 902px of rail
+   * content was compressed instead of scrolled: flex-shrink squeezed
+   * `.wordmark` from 85px to 40px and, because it is overflow-visible, the
+   * "proof" line spilled out and the nav list painted across it. Measured at
+   * +11.6px of overlap on every laptop-height viewport. */
+  max-height: 100vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Nothing in the rail may be compressed to less than its content. The nav list
+ * is the only element allowed to absorb slack, and it grows rather than
+ * shrinks — `flex: 1` alone still permits shrinking, which was half the bug. */
+.rail > * {
+  flex-shrink: 0;
 }
 
 .wordmark {
@@ -57,7 +72,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  flex: 1;
+  flex: 1 0 auto;
 }
 
 .rail a,
@@ -65,8 +80,8 @@
   display: block;
   width: 100%;
   text-align: left;
-  padding: 9px 10px;
-  min-height: 40px;
+  padding: 7px 10px;
+  min-height: 34px;
   border: 0;
   border-radius: var(--radius-sm);
   background: none;
@@ -99,13 +114,31 @@
   margin-top: var(--s3);
 }
 
+/* engine / offline-mode read as label+value pairs. Four stacked rows spent
+ * ~34px of a rail that was already overflowing; one row each reads faster and
+ * keeps the pair visually bound. */
+.rail-stat {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s2);
+  margin: 0 0 2px !important;
+}
+
+.rail-stat .label {
+  margin-top: 0 !important;
+}
+
+.rail-stat .mono {
+  color: var(--ink-2);
+}
+
 .rail-note {
   margin-top: var(--s4) !important;
   padding-top: var(--s3);
   border-top: 1px solid var(--rule);
   color: var(--ink-3) !important;
   font-size: var(--t-small);
-  line-height 1.45;
   line-height: 1.45;
 }
 
@@ -922,11 +955,11 @@ dl.formula dd {
 .rail-gov {
   display: grid;
   gap: 1px;
-  padding-bottom: var(--s4);
-  margin-bottom: var(--s4);
+  padding-bottom: var(--s3);
+  margin-bottom: var(--s3);
   border-bottom: 1px solid var(--rule);
   font-size: 9.5px;
-  line-height: 1.5;
+  line-height: 1.45;
   letter-spacing: 0.03em;
   color: var(--ink-3);
   text-transform: uppercase;
@@ -977,4 +1010,464 @@ dl.formula dd {
     margin-top: 0;
     letter-spacing: 0.04em;
   }
+}
+
+/* --- login screen -------------------------------------------------------- */
+
+.login-shell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--paper-2);
+}
+
+.login-card {
+  width: min(420px, 90vw);
+  padding: var(--s7) var(--s6);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+}
+
+.login-gov {
+  display: flex;
+  flex-direction: column;
+  font-size: var(--t-small);
+  color: var(--ink-3);
+  line-height: 1.4;
+  margin-bottom: var(--s4);
+}
+
+.login-wordmark {
+  margin-bottom: var(--s6);
+}
+
+.login-wordmark .deva {
+  display: block;
+  font-size: 28px;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+
+.login-wordmark .latin {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  margin-top: 2px;
+}
+
+.login-wordmark .label {
+  display: block;
+  margin-top: var(--s2);
+  font-size: var(--t-small);
+  color: var(--ink-3);
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+}
+
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+.login-label {
+  font-size: var(--t-small);
+  font-weight: 600;
+  color: var(--ink-2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.login-field input,
+.login-field select,
+.login-field textarea {
+  font-family: var(--font-mono);
+  font-size: var(--t-body);
+  padding: var(--s2) var(--s3);
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.login-field input:focus,
+.login-field select:focus,
+.login-field textarea:focus {
+  outline: 2px solid var(--ink);
+  outline-offset: -1px;
+}
+
+.login-error {
+  color: var(--n3);
+  font-size: var(--t-small);
+  margin: 0;
+}
+
+.login-submit {
+  font-family: var(--font-mono);
+  font-size: var(--t-body);
+  font-weight: 700;
+  padding: var(--s3) var(--s5);
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.login-submit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.login-foot {
+  margin-top: var(--s6);
+  padding-top: var(--s4);
+  border-top: 1px solid var(--rule);
+}
+
+.login-caveat {
+  font-size: var(--t-small);
+  color: var(--ink-3);
+  margin-top: var(--s2);
+}
+
+/* --- rail session -------------------------------------------------------- */
+
+.rail-session {
+  margin-bottom: var(--s4);
+  padding-bottom: var(--s3);
+  border-bottom: 1px solid var(--rule);
+}
+
+.rail-user {
+  font-size: var(--t-small);
+  font-weight: 700;
+}
+
+.rail-logout {
+  margin-top: var(--s2);
+  font-size: var(--t-small);
+  color: var(--ink-3);
+}
+
+.rail-logout:hover {
+  color: var(--n3);
+}
+
+/* --- adjudication panel -------------------------------------------------- */
+
+.adj-panel {
+  padding: var(--s5) var(--s6);
+  border-top: 2px solid var(--rule);
+  margin-top: var(--s4);
+}
+
+.adj-title {
+  font-size: var(--t-h2);
+  margin: 0 0 var(--s3);
+}
+
+.adj-note {
+  font-size: var(--t-small);
+  color: var(--ink-3);
+  margin: 0 0 var(--s3);
+}
+
+.adj-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+}
+
+.adj-decisions {
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.adj-decisions legend {
+  margin-bottom: var(--s2);
+}
+
+.adj-radio {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
+  cursor: pointer;
+}
+
+.adj-radio-label {
+  font-size: var(--t-body);
+}
+
+.adj-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+.adj-field select,
+.adj-field textarea {
+  font-family: var(--font-mono);
+  font-size: var(--t-body);
+  padding: var(--s2) var(--s3);
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.adj-submit {
+  font-family: var(--font-mono);
+  font-size: var(--t-body);
+  font-weight: 700;
+  padding: var(--s3) var(--s5);
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  align-self: flex-start;
+}
+
+.adj-submit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.adj-receipt {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--s1) var(--s4);
+  font-size: var(--t-body);
+}
+
+.adj-receipt dt {
+  font-weight: 600;
+  color: var(--ink-2);
+  text-transform: uppercase;
+  font-size: var(--t-small);
+  letter-spacing: 0.04em;
+}
+
+.adj-hash {
+  font-size: var(--t-small);
+  word-break: break-all;
+}
+
+.adj-signed {
+  background: var(--paper-3);
+}
+
+.adj-result {
+  background: var(--paper-3);
+}
+
+/* --- ledger -------------------------------------------------------------- */
+
+.ledger {
+  padding: var(--s5) var(--s6);
+}
+
+.ledger-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s4);
+  margin-bottom: var(--s4);
+  flex-wrap: wrap;
+}
+
+.ledger-badge {
+  font-size: var(--t-small);
+  padding: var(--s1) var(--s3);
+  border: 1px solid var(--rule);
+}
+
+.ledger-valid {
+  color: var(--l4);
+  border-color: var(--l4);
+}
+
+.ledger-broken {
+  color: var(--n3);
+  border-color: var(--n3);
+}
+
+.ledger-statement {
+  font-size: var(--t-small);
+  color: var(--ink-3);
+  margin-bottom: var(--s5);
+  max-width: 72ch;
+}
+
+.ledger-table {
+  font-size: var(--t-small);
+}
+
+.adj-decision-accept { color: var(--l4); }
+.adj-decision-edit   { color: var(--ink); }
+.adj-decision-reject { color: var(--n3); }
+
+/* --- admin panel --------------------------------------------------------- */
+
+.admin-panel {
+  padding: var(--s5) var(--s6);
+}
+
+.admin-panel .panel {
+  margin-bottom: var(--s5);
+}
+
+.admin-caps {
+  list-style: none;
+  padding: 0;
+  margin: var(--s3) 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+.admin-caps li {
+  font-size: var(--t-small);
+  padding: var(--s1) var(--s3);
+  border: 1px solid var(--rule);
+  background: var(--paper-3);
+}
+
+.admin-notes {
+  font-size: var(--t-body);
+  padding-left: var(--s5);
+  margin: var(--s3) 0 0;
+}
+
+.admin-notes li {
+  margin-bottom: var(--s2);
+}
+
+.admin-notes code {
+  font-family: var(--font-mono);
+  font-size: var(--t-small);
+  background: var(--paper-3);
+  padding: 1px 4px;
+}
+
+/* --- workspace badge ----------------------------------------------------- */
+
+/* Names the officer's mode. Bordered rather than filled: the epistemic ladder
+ * owns filled colour in this interface, and a workspace is not a verdict. */
+.rail-workspace {
+  font-size: var(--t-small);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px var(--s2);
+  margin-bottom: var(--s2);
+  border: 1px solid var(--rule);
+  display: inline-block;
+}
+
+.ws-monitoring {
+  border-color: var(--ink-2);
+}
+
+.ws-administration {
+  border-color: var(--ink);
+  background: var(--paper-3);
+}
+
+/* --- boot / session restore --------------------------------------------- */
+
+.boot-shell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s3);
+  min-height: 100vh;
+  background: var(--paper-2);
+}
+
+.boot-mark {
+  font-size: 30px;
+  letter-spacing: 0.04em;
+  margin: 0;
+  color: var(--ink);
+}
+
+.boot-note {
+  margin: 0;
+  font-size: var(--t-small);
+  color: var(--ink-3);
+}
+
+/* --- quick demo role selection ------------------------------------------ */
+
+.login-demo {
+  margin-top: var(--s5);
+  padding-top: var(--s4);
+  border-top: 1px solid var(--rule);
+}
+
+.login-demo-head {
+  margin: 0 0 var(--s3);
+  font-size: var(--t-micro);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.login-demo-row {
+  display: grid;
+  gap: var(--s2);
+}
+
+.login-demo-btn {
+  display: grid;
+  gap: 1px;
+  width: 100%;
+  text-align: left;
+  padding: var(--s3);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color var(--dur-fast) var(--ease),
+    background var(--dur-fast) var(--ease);
+}
+
+.login-demo-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.login-demo-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.login-demo-role {
+  font-size: var(--t-body);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.login-demo-who {
+  font-size: var(--t-micro);
+  color: var(--ink-3);
+}
+
+.login-demo-can {
+  font-size: var(--t-micro);
+  color: var(--ink-2);
 }

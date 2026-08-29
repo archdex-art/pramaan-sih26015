@@ -37,7 +37,7 @@ def get_engine() -> Engine:
     """One engine per process. Cached: creating an engine per request leaks
     connection pools and is the classic way to exhaust `max_connections`."""
     settings = get_settings()
-    return create_engine(
+    engine = create_engine(
         settings.database_url,
         pool_pre_ping=True,
         pool_size=5,
@@ -48,6 +48,55 @@ def get_engine() -> Engine:
         pool_recycle=1800,
         future=True,
     )
+    _drop_privileges(engine)
+    return engine
+
+
+#: The role every application connection drops to after connecting.
+APP_ROLE = "pramaan_app"
+
+
+def _drop_privileges(engine: Engine) -> None:
+    """`SET ROLE pramaan_app` on every pooled connection.
+
+    ## Why this exists
+
+    Migration 0001 revokes UPDATE and DELETE on `adjudications` from
+    `pramaan_app`, which is what makes the ledger append-only. Measured against
+    the running system, the control was doing nothing: the app connects as
+    `pramaan`, the table **owner**, whose privileges no revoke on another role
+    can restrict. The ledger was append-only in the migration and freely
+    mutable in production.
+
+    Dropping to the unprivileged role at connect time is what puts the revoke in
+    force. It runs on `connect`, not per query, so it costs one statement per
+    pooled connection.
+
+    ## Why `SET ROLE` and not separate credentials
+
+    A second set of credentials is stronger — a compromised process cannot
+    `RESET ROLE` its way back to the owner — but it needs a password
+    distributed to every service, and a password in a migration or a compose
+    file is a worse defect than the one being fixed.
+
+    So the honest scope of this control: it is enforced against **this
+    application's own SQL**, which is the realistic path by which an
+    append-only table gets updated by accident. It is not a defence against an
+    attacker who already has arbitrary SQL execution — such an attacker can
+    `RESET ROLE`. Stated plainly in `docs/17-roles-and-ledger.md` rather than
+    left for a reviewer to discover.
+    """
+    from sqlalchemy import event
+
+    @event.listens_for(engine, "connect")
+    def _set_role(dbapi_connection: object, _record: object) -> None:
+        cursor = dbapi_connection.cursor()  # type: ignore[attr-defined]
+        try:
+            # Fails loudly if the role is missing: a silent fallback to owner
+            # privileges would reinstate exactly the defect this closes.
+            cursor.execute(f"SET ROLE {APP_ROLE}")
+        finally:
+            cursor.close()
 
 
 @lru_cache(maxsize=1)

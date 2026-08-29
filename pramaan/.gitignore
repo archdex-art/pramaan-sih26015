@@ -38,3 +38,7 @@ deploy/env/*.env
 build/video/clips/
 build/video/seg/
 build/video/cards/
+
+# JWT signing keys — a repo that ships a signing key ships every session.
+.keys/
+*.pem

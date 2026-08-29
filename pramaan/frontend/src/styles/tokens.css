@@ -103,6 +103,11 @@
   --accent-soft: #f3ebe0;
   --warn-bg: #fbf3e0;
   --warn-edge: #96681a;
+  /* `.error` in chart.css referenced these two and they were never defined,
+   * so error boxes rendered with a transparent background. Red-tinted to match
+   * --n3, mirroring the warn pair above. */
+  --error-bg: #fbecea;
+  --error-edge: #92321f;
   --agree: #2f6b52;
   --disagree: #92321f;
 
@@ -119,7 +124,7 @@
   --radius: 6px;
   --shadow-overlay: 0 12px 40px rgb(26 24 21 / 14%);
 
-  --rail-w: 196px;
+  --rail-w: 224px;
   --content-max: 1320px;
 
   /* --- motion (dial 3, subtle) ---------------------------------------- */
@@ -143,6 +148,12 @@
     animation-duration: 0ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0ms !important;
+    /* Delay must go too. `.rise` uses `fill-mode: both`, so during its delay the
+     * `from` keyframe applies and the element sits at opacity 0. Zeroing only
+     * the duration left the 40-200ms stagger intact, which still reads as
+     * motion: content blank, then popping in one block at a time. */
+    animation-delay: 0ms !important;
+    transition-delay: 0ms !important;
   }
 }
 

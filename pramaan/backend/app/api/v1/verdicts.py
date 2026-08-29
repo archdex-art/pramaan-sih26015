@@ -32,6 +32,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from app.api.deps import CurrentScope, require
+from app.api.scope import require_claim_visible, require_verdict_visible
+from app.core.authz import Capability
 from app.db.session import db_session
 from app.db.verdicts import (
     StoredVerdict,
@@ -133,30 +136,45 @@ def _to_out(v: StoredVerdict) -> VerdictOut:
     )
 
 
-@router.get("/verdicts/{verdict_id}", response_model=VerdictOut)
-def get_verdict(verdict_id: int, session: DbSession) -> VerdictOut:
+@router.get(
+    "/verdicts/{verdict_id}",
+    response_model=VerdictOut,
+    dependencies=[Depends(require(Capability.VERDICT_READ))],
+)
+def get_verdict(verdict_id: int, session: DbSession, scope: CurrentScope) -> VerdictOut:
+    require_verdict_visible(session, scope, verdict_id)
     try:
         return _to_out(load_verdict(session, verdict_id))
     except VerdictNotFound as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
 
 
-@router.get("/claims/{claim_id}/verdict", response_model=VerdictOut)
-def get_latest_verdict(claim_id: int, session: DbSession) -> VerdictOut:
+@router.get(
+    "/claims/{claim_id}/verdict",
+    response_model=VerdictOut,
+    dependencies=[Depends(require(Capability.VERDICT_READ))],
+)
+def get_latest_verdict(claim_id: int, session: DbSession, scope: CurrentScope) -> VerdictOut:
     """The current verdict for a claim. Earlier versions stay readable by id."""
+    require_claim_visible(session, scope, claim_id)
     try:
         return _to_out(load_verdict(session, latest_verdict_id(session, claim_id)))
     except VerdictNotFound as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
 
 
-@router.post("/verdicts/{verdict_id}/recompute", response_model=RecomputeOut)
-def recompute_verdict(verdict_id: int, session: DbSession) -> RecomputeOut:
+@router.post(
+    "/verdicts/{verdict_id}/recompute",
+    response_model=RecomputeOut,
+    dependencies=[Depends(require(Capability.VERDICT_RECOMPUTE))],
+)
+def recompute_verdict(verdict_id: int, session: DbSession, scope: CurrentScope) -> RecomputeOut:
     """Re-run the engine over this verdict's stored lineage.
 
     Read-only. It never writes a new verdict: proving reproducibility must not
     itself mutate the record being proved.
     """
+    require_verdict_visible(session, scope, verdict_id)
     try:
         stored = load_verdict(session, verdict_id)
     except VerdictNotFound as exc:
