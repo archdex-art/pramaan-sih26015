@@ -84,8 +84,8 @@ curl -s -X POST localhost:8000/api/v1/verdicts/1/recompute | python3 -m json.too
 ## Other targets
 
 ```bash
-make check         # everything CI runs: lint, mypy --strict, 458 tests, 100 % coverage
-make test-db       # 39 integration tests against a throwaway PostGIS, torn down after
+make check         # everything CI runs: lint, mypy --strict, 488 tests, 100 % coverage
+make test-db       # 556 tests against a throwaway PostGIS (incl. the ledger), torn down after
 make web-check     # frontend typecheck + production build
 make down          # stop and delete volumes
 ```

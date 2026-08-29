@@ -290,17 +290,35 @@ You are looking at a table of 24 claims.
 
 ---
 
-## Step 4 — The dissent panel *(20 s)*
+## Step 4 — The dissent panel, then the signature *(35 s)*
 
 **Do:** point right.
 
 > "Dissent, always shown, **never collapsible**. Everything arguing the other
 > way. A verdict without stated counter-evidence isn't shippable in this system.
 >
-> And the adjudication buttons below are **deliberately disabled with the reason
-> printed**: the append-only ledger table exists, the database already refuses
-> UPDATE and DELETE to the application role — but the signing endpoint isn't
-> built. So every verdict stays **PROVISIONAL**, which is the correct state."
+> Below it is the signature box. Nothing here becomes government evidence until
+> a named officer signs it — and this is where the word PROVISIONAL stops
+> appearing."
+
+**Do:** scroll to the adjudication panel and point at the receipt.
+
+> "This claim carries a signature: R. Kumar, WCDC Nanded, and the hash of the
+> row that was written. The ledger is append-only — the database **revokes
+> UPDATE and DELETE** from the application role, so not even the application
+> can rewrite a signature. Each row carries the hash of the one before it."
+
+**Do:** click **Adjudication ledger** in the rail.
+
+> "Every signature in chain order, with the verification result computed live.
+> And the same check runs from `psql` without this application, because an
+> auditor should not have to trust our UI to verify our chain."
+
+**If a judge asks what the chain cannot do:** answer straight — it cannot
+detect deletion of its own tail, because every surviving link still verifies.
+That is exactly why `REVOKE DELETE` is load-bearing rather than decorative, and
+why the row count is checked against an external record. There is a test in the
+suite that asserts this limitation rather than hiding it.
 
 ---
 
@@ -380,11 +398,13 @@ curl -s -X POST localhost:8000/api/v1/verdicts/1/recompute | python3 -m json.too
 
 **"Is it all built?"**
 > "No, and let me be precise. **Built and tested:** the engine, all six evidence
-> producers, the database, the verdict API, the recompute proof, and the console
-> you just saw — 458 tests, 100 per cent branch coverage on the deterministic
-> core. **Scaffolded:** photo upload, access control, the adjudication signing
-> endpoint, the Evidence Pack PDF. **Not started:** the photo model itself,
-> because it needs a labelled dataset that doesn't exist."
+> producers, the database, the verdict API, the recompute proof, role-based
+> access control, the append-only adjudication ledger, the priority alert queue,
+> and the console you just saw — 556 tests, 100 per cent branch coverage on the
+> deterministic core and on the ledger. **Not built:** photo upload, the
+> Evidence Pack PDF, and the photo model itself — the model because it needs a
+> labelled dataset that doesn't exist. Those are empty packages, and I'd rather
+> call them empty than call them scaffolded."
 
 **"Your one real claim came out inconclusive. Isn't that a failure?"**
 > "It's the opposite. The vegetation genuinely rose — a system that wanted to look
@@ -413,7 +433,7 @@ curl -s -X POST localhost:8000/api/v1/verdicts/1/recompute | python3 -m json.too
 
 | Don't | Do |
 |---|---|
-| "fully working / production ready" | "engine and evidence layer built and tested; upload and reporting scaffolded" |
+| "fully working / production ready" | "engine, evidence layer, access control, ledger and alerts built and tested; upload and reporting not built" |
 | "95 % accurate" or any invented figure | "not measured yet — here's what we did measure" |
 | "the AI detects check dams" | "one of six families uses a vision model, weighted lowest" |
 | "it proves the structure works" | "it reports whether the evidence is consistent with it working" |

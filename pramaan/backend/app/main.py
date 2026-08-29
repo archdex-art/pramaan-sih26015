@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 from app.api.v1 import (
     adjudication,
+    alerts,
     auth,
     claims,
     mapview,
@@ -34,6 +35,7 @@ app.include_router(auth.router, prefix="/api/v1")
 app.include_router(adjudication.router, prefix="/api/v1")
 app.include_router(mapview.router, prefix="/api/v1")
 app.include_router(claims.router, prefix="/api/v1")
+app.include_router(alerts.router, prefix="/api/v1")
 
 
 @app.get("/healthz", tags=["ops"])

@@ -198,29 +198,6 @@ export function Detail({
               verification”. It is enforced by a linter, not a style guide.
             </p>
           </div>
-
-          <div className="panel adjudication">
-            <h2 className="label">Adjudication</h2>
-            <div className="btn-row">
-              <button className="btn primary" disabled>
-                Accept
-              </button>
-              <button className="btn" disabled>
-                Edit
-              </button>
-              <button className="btn danger" disabled>
-                Reject
-              </button>
-            </div>
-            {/* A disabled control says why. No dead buttons. */}
-            <p className="note">
-              <strong>Not yet wired.</strong> The append-only, hash-chained
-              <code> adjudications</code> table exists and the database already
-              refuses UPDATE and DELETE to the application role — but the signing
-              endpoint is Stage 5. Until then every verdict stays{" "}
-              <strong>PROVISIONAL</strong>, which is the correct state.
-            </p>
-          </div>
         </section>
       </div>
     </div>

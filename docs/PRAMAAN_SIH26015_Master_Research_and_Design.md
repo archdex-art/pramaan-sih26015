@@ -882,7 +882,7 @@ annotated_at: iso8601
 
 > **Use the simplest technique that is adequate. Every model must earn its place by being better than a rule, and every model must be able to say "I don't know."**
 
-We will state on a slide that **three of the five evidence families in PRAMAAN contain no machine learning at all** (terrain, satellite indices, temporal statistics). This is a strength: the system's core reasoning is deterministic and inspectable, and the ML is a bounded contributor.
+We will state on a slide that **five of the six evidence families in PRAMAAN contain no machine learning at all** (terrain, satellite indices, temporal statistics, matched controls, rainfall context). This is a strength: the system's core reasoning is deterministic and inspectable, and the ML is a bounded contributor.
 
 ## 14.2 Task-by-task selection
 
@@ -3157,7 +3157,7 @@ The submission is considered complete when: (1) `docker compose up` on a clean m
 > Output: a verdict, a confidence, an epistemic level — and the evidence **against** it.
 
 **Visual:** The Example-A evidence card from §16.3, rendered as a real UI screenshot.
-**Speaker notes:** Point out that the photo is weighted *lowest* of the five families — because the photo is the claim's own source, and independent evidence must outrank self-report.
+**Speaker notes:** Point out that the photo is weighted *lowest* of the six families — because the photo is the claim's own source, and independent evidence must outrank self-report.
 **Judging objective:** the product concept lands in 20 seconds.
 
 ---
@@ -3608,7 +3608,7 @@ See §38. The abstract version ("evidence reconciliation framework") is replaced
 | **0:00–0:25** | Slide / S2 | Open the project selector, pick **IWMP-MH-NAN-07** | "This is a real micro-watershed. 142 geo-tagged works. Today an officer reviews these by looking at photographs. Let's do it differently." |
 | **0:25–1:00** | S3 map console | Toggle layers: boundary → DEM drainage → water persistence → geotags coloured by verdict | "Drainage extracted from a 30 m DEM. Water persistence from ten years of Landsat. And the geotags — green corroborated, amber inconclusive, red requires verification. **Six red.** That's where a human should go this month." |
 | **1:00–1:20** | S3 → S9 | Click the first green pin — the check dam | "Start with the easy case." |
-| **1:20–2:00** | S9 detail | Walk the evidence tree; open all five families | "Photo says water, 0.91. Terrain: Strahler order 3, flow accumulation 4,180 cells — this is a real drainage line. Satellite: MNDWI went from minus 0.08 to plus 0.31. Water persistence: four months a year to seven." |
+| **1:20–2:00** | S9 detail | Walk the evidence tree; open all six families | "Photo says water, 0.91. Terrain: Strahler order 3, flow accumulation 4,180 cells — this is a real drainage line. Satellite: MNDWI went from minus 0.08 to plus 0.31. Water persistence: four months a year to seven." |
 | **2:00–2:35** | S7 temporal | Open the temporal chart | "**Here's the chart that matters.** Bold line is the site. The shaded band is twelve matched control sites in the same sub-watershed — same slope, same land cover, same rainfall, no intervention. The hatched band is the construction period, which we exclude. The site leaves the control band and stays out. **Level 4: control-differenced.** Not causal — we never say causal." |
 | **2:35–2:50** | S9 | Click **Accept** | "Twenty seconds. Signed into an append-only ledger." |
 | **2:50–3:10** | S9 (next item) | Open the red pin — the farm pond. Show the photo large. | "Now the interesting one. Look at this photo. There is clearly an excavation. Any officer would accept this." |

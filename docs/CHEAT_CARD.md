@@ -80,13 +80,13 @@
 ## TOP 4 QUESTIONS
 
 **"Is it all built?"**
-> "Built and tested: engine, all six evidence producers, database, verdict API, recompute proof, temporal screen. Scaffolded: upload, access control, adjudication screen, PDF. Not started: the photo model — it needs a dataset that doesn't exist."
+> "Built and tested: engine, all six evidence producers, database, verdict API, recompute proof, temporal screen, access control, the append-only ledger, the alert queue — 556 tests. Not built: upload, the Evidence Pack PDF. Not started: the photo model — it needs a dataset that doesn't exist."
 
 **"Inconclusive means it failed?"**
 > "The opposite. Vegetation genuinely rose. A system that wanted to look good would report success. Ours checked 12 matched neighbours and refused. **A system that reports 30 % inconclusive is more trustworthy than one that reports 100 % conclusive.**"
 
 **"Where's the AI?"**
-> "One of five families, weighted lowest, deliberately. A government verdict has to be explainable. And it's zero-shot — no training data — because no labelled Indian watershed photo corpus exists. We probed ten sources."
+> "One of six families, weighted lowest, deliberately. A government verdict has to be explainable. And it's zero-shot — no training data — because no labelled Indian watershed photo corpus exists. We probed ten sources."
 
 **"Why should we trust your numbers?"**
 > "Don't — check them. `make series` rebuilds the satellite measurement, `make terrain` the elevation analysis, `make check` the tests. The failures are written down too."

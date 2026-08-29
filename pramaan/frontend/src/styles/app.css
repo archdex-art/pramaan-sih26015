@@ -211,18 +211,6 @@
   cursor: not-allowed;
 }
 
-.btn.primary {
-  background: var(--l4);
-  border-color: var(--l4);
-  color: #fff;
-}
-
-.btn.danger {
-  background: var(--paper-2);
-  border-color: var(--n3);
-  color: var(--n3);
-}
-
 .filters {
   display: flex;
   gap: var(--s4);
@@ -560,8 +548,7 @@ ul.tree {
   margin-top: var(--s2);
 }
 
-.panel.action,
-.panel.adjudication {
+.panel.action {
   margin-top: var(--s4);
   padding: var(--s4);
 }
@@ -570,11 +557,6 @@ ul.tree {
   margin: 0;
   font-size: 15px;
   text-transform: capitalize;
-}
-
-.btn-row {
-  display: flex;
-  gap: var(--s2);
 }
 
 /* --- method drawer ---------------------------------------------------- */

@@ -48,9 +48,17 @@ DbSession = Annotated[Session, Depends(db_session)]
 # `DISTINCT ON (c.id) ... ORDER BY c.id, v.version DESC` is the codebase's
 # established way of taking the newest verdict per claim (see `v1.claims`), and
 # it is kept here rather than swapped for `row_number()` so both register queries
-# read the same and one plan change fixes both. An older version must never
-# appear in the queue: a claim adjudicated up to L3 would otherwise keep
-# surfacing under whatever it used to be.
+# read the same and one plan change fixes both.
+#
+# The level filter is applied *after* that selection, in an outer query, and the
+# ordering of those two steps is the whole correctness of this endpoint. Filtering
+# first — `WHERE ... AND v.level = ANY(:alert_levels)` in the same SELECT — looks
+# equivalent and is not: for a claim whose v1 was N3 and whose v2 is L3, the WHERE
+# discards the L3 row, `DISTINCT ON` then finds only v1 surviving, and the
+# superseded N3 is emitted as if current. The queue would keep sending officers to
+# a site that has already been re-assessed as sound, and it would do it silently,
+# because every row returned is a genuine row. That was a live bug here, caught by
+# `test_only_the_newest_verdict_version_appears`.
 #
 # A template, not a `text()`: `{scope}` is filled from `scope.register_clause`,
 # which returns one of three fixed fragments and never caller input. The district
@@ -71,24 +79,27 @@ DbSession = Annotated[Session, Depends(db_session)]
 # and `recommended_action` are all NOT NULL in the migration, so defaulting them
 # here would only mask a schema change behind a plausible-looking zero.
 _QUEUE_SQL = """
-SELECT DISTINCT ON (c.id)
-       c.id                 AS claim_id,
-       v.id                 AS verdict_id,
-       i.unique_id          AS unique_id,
-       i.type::text         AS intervention_type,
-       c.district_lgd       AS district_lgd,
-       v.level::text        AS level,
-       v.score              AS score,
-       v.confidence         AS confidence,
-       v.data_sufficiency   AS data_sufficiency,
-       v.recommended_action ->> 'action' AS recommended_action,
-       EXISTS (SELECT 1 FROM adjudications a WHERE a.verdict_id = v.id) AS adjudicated
-FROM claims c
-JOIN interventions i ON i.id = c.intervention_id
-JOIN verdicts v ON v.claim_id = c.id
-WHERE {scope}
-  AND v.level::text = ANY(:alert_levels)
-ORDER BY c.id, v.version DESC
+WITH newest AS (
+    SELECT DISTINCT ON (c.id)
+           c.id                 AS claim_id,
+           v.id                 AS verdict_id,
+           i.unique_id          AS unique_id,
+           i.type::text         AS intervention_type,
+           c.district_lgd       AS district_lgd,
+           v.level::text        AS level,
+           v.score              AS score,
+           v.confidence         AS confidence,
+           v.data_sufficiency   AS data_sufficiency,
+           v.recommended_action ->> 'action' AS recommended_action,
+           EXISTS (SELECT 1 FROM adjudications a WHERE a.verdict_id = v.id) AS adjudicated
+    FROM claims c
+    JOIN interventions i ON i.id = c.intervention_id
+    JOIN verdicts v ON v.claim_id = c.id
+    WHERE {scope}
+    ORDER BY c.id, v.version DESC
+)
+SELECT * FROM newest
+WHERE level = ANY(:alert_levels)
 """
 
 

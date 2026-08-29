@@ -56,13 +56,42 @@ The core analytical pipeline, database, API, and frontend console are **built, t
 
 ## 3. The Immediate Next Steps (Critical Path)
 
-Pick up exactly where this session left off:
+Verified state as of the last session, by running the code rather than by
+reading notes:
 
-*   **Adjudication Ledger (S9 / Backend)**: The UI buttons (Accept/Edit/Reject) on the Detail screen are currently disabled. You need to build the `POST /claims/{id}/adjudicate` endpoint. This must write to an append-only, hash-chained `adjudications` table (the schema exists).
-*   **M1 (District Data)**: Bulk imagery acquisition pipeline for a full district.
-*   **M3/M6 (Photo AI)**: Field collection schema (`ml/annotation/schema.py` is frozen) and standing up the SigLIP-2 zero-shot pipeline for the `photo` family.
-*   **M4 (Ingestion)**: Building `app.workers.ingestion` to process EXIF metadata from uploaded images.
-*   **M7 (API Security)**: JWT RBAC implementation.
+**Built and tested.** The engine and all six evidence producers. The database
+with partitioning. Verdict API and the `/recompute` byte-identity proof. JWT
+auth with capability-based RBAC (`app/core/authz.py`, seven seeded accounts,
+`scripts/seed_users.py`). The append-only adjudication ledger — hash-chained,
+`UPDATE`/`DELETE` revoked from `pramaan_app`, with an offline verifier at
+`scripts/verify_ledger_chain.py`. The priority alert queue (FR-10). The
+console: register, reconciliation detail, method drawer, temporal chart, plan
+map, ledger screen, login.
+
+Gates: `make check` → 488 tests, 100 % branch coverage, `mypy --strict` clean.
+`make test-db` → 556 tests, `app.services.audit` at 100 %.
+
+**Genuinely not built.** Pick these up in this order:
+
+* **M4 — Ingestion.** `app/services/ingestion/` and `app/workers/ingestion.py`
+  do not exist beyond an empty `__init__.py`. Needs EXIF/XMP → GPS, the
+  quality gate (variance-of-Laplacian blur + histogram exposure), pHash
+  dedupe, face blur before any UI shows the image, and MIME sniffing with full
+  libvips re-encode. The contracts are specified in the master doc.
+* **Evidence Pack PDF.** `app/services/reports/` is an empty package. Must
+  read stored evidence only and recompute nothing, with the mandatory
+  limitations section on page 1.
+* **M1 — District data.** Bulk imagery acquisition for a full district.
+* **M3/M6 — Photo model.** `ml/annotation/schema.py` is frozen; the SigLIP-2
+  zero-shot pipeline for the `photo` family still needs a labelled set that
+  does not exist. This is the longest pole and the least demo-critical.
+
+**Two traps that already cost time.** (1) `verdicts.status` has exactly three
+legal values — `pending`, `adjudicated`, `superseded` — enforced by
+`verdict_status_vocabulary` since migration 0005; do not invent a fourth.
+(2) A bare `from conftest import ...` under `tests/` resolves by `sys.path`
+order, not proximity. Engine bundle builders live in `tests/bundles.py`; DB
+fixtures live in `tests/integration/conftest.py`.
 
 ---
 
@@ -77,7 +106,7 @@ make demo-up
 # 2. Start the frontend
 make web
 
-# 3. Run the full test suite (458 tests, 100% branch coverage)
+# 3. Run the full test suite (488 offline, 556 with a database)
 make check
 ```
 

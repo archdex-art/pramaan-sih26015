@@ -161,7 +161,9 @@ def verdict(con, claim):  # type: ignore[no-untyped-def]
             "recommended_action": {"action": "no action"},
             "engine_version": "engine-v1",
             "weights": {"terrain": 0.25},
-            "status": "provisional",
+            # 'pending' is the schema default and the only unsigned value the
+            # verdict_status_vocabulary CHECK admits (migration 0005).
+            "status": "pending",
             "lineage": {"engine_version": "engine-v1"},
             "bundle_digest": "0" * 64,
             "verdict_digest": "1" * 64,

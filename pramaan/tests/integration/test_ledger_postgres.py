@@ -83,7 +83,7 @@ def session(con):  # type: ignore[no-untyped-def]
     yield s
     s.rollback()
     s.execute(text("DELETE FROM adjudications"))
-    s.execute(text("UPDATE verdicts SET status = 'provisional'"))
+    s.execute(text("UPDATE verdicts SET status = 'pending'"))
     s.commit()
     s.close()
     engine.dispose()
@@ -108,7 +108,7 @@ def officer(con):  # type: ignore[no-untyped-def]
     # ledger rows this officer wrote have to be cleared first - fixture
     # teardown runs in reverse setup order and will not do it for us.
     cur.execute("DELETE FROM adjudications WHERE user_id = %s::uuid", (uid,))
-    cur.execute("UPDATE verdicts SET status = 'provisional'")
+    cur.execute("UPDATE verdicts SET status = 'pending'")
     cur.execute("DELETE FROM users WHERE id = %s::uuid", (uid,))
     con.commit()
 
@@ -199,7 +199,7 @@ def test_signing_lifts_the_verdict_out_of_provisional(session, officer, signable
     before = session.execute(
         text("SELECT status FROM verdicts WHERE id = :v"), {"v": signable}
     ).scalar_one()
-    assert before == "provisional"
+    assert before == "pending"
 
     append(session, verdict_id=signable, user_id=officer, decision="accept")
 
@@ -220,7 +220,7 @@ def test_a_refused_write_leaves_no_row_and_no_status_change(session, officer, si
     status = session.execute(
         text("SELECT status FROM verdicts WHERE id = :v"), {"v": signable}
     ).scalar_one()
-    assert status == "provisional"
+    assert status == "pending"
 
 
 def test_the_database_check_constraint_is_the_real_authority(session, officer, signable):  # type: ignore[no-untyped-def]
@@ -421,3 +421,38 @@ def test_the_offline_verifier_exits_nonzero_on_a_tampered_chain(session, officer
     assert done.returncode == 1, done.stdout
     assert "BROKEN" in done.stdout
     assert "row_hash mismatch" in done.stdout, done.stdout
+
+
+def test_the_status_vocabulary_check_is_live(session, signable):  # type: ignore[no-untyped-def]
+    """Migration 0005. `verdicts.status` used to be unconstrained TEXT.
+
+    The hazard was on the write side, not the read side: readers compute
+    `provisional = status != 'adjudicated'` and so fail safe, but
+    `app/db/verdicts.py` supersedes older versions `WHERE status <>
+    'adjudicated'`. A near-miss value satisfies that predicate, so a *signed*
+    verdict could have been silently superseded - which is precisely what that
+    file's own comment forbids.
+    """
+    with pytest.raises(Exception) as exc:
+        session.execute(
+            text("UPDATE verdicts SET status = 'Adjudicated' WHERE id = :v"),
+            {"v": signable},
+        )
+    session.rollback()
+    assert "verdict_status_vocabulary" in str(exc.value)
+
+
+def test_every_real_status_is_accepted(session, signable):  # type: ignore[no-untyped-def]
+    """The control for the test above: a constraint that rejected everything
+    would pass it for the wrong reason.
+
+    `superseded` is in this list because the constraint's first draft omitted it
+    and this suite caught it - the vocabulary was undocumented precisely because
+    nothing enforced it.
+    """
+    for status in ("adjudicated", "superseded", "pending"):
+        session.execute(
+            text("UPDATE verdicts SET status = :s WHERE id = :v"),
+            {"s": status, "v": signable},
+        )
+    session.rollback()

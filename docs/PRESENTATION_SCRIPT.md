@@ -244,9 +244,13 @@ proves you thought about it. Expect to be asked. Know it cold.**
 > Everything in the product serves those six steps. Anything that didn't, we
 > didn't build."
 
-**Honesty note for you:** steps 4 (reconcile) and part of 6 (the record) are
-**built and tested**. Steps 1–3 and the PDF are **designed and scaffolded**. If
-asked *"is all six built?"* — see §4, Question 1. **Do not claim all six.**
+**Honesty note for you:** step 4 (reconcile) and step 6 (the record — the
+append-only, hash-chained ledger, signed by a named officer) are **built and
+tested**, as is access control and the priority alert queue. Steps 1–3 and the
+Evidence Pack PDF are **not built** — `app/services/ingestion` and
+`app/services/reports` are empty packages, and calling them "scaffolded" would
+be generous. If asked *"is all six built?"* — see §4, Question 1. **Do not
+claim all six.**
 
 ---
 
@@ -297,7 +301,7 @@ asked *"is all six built?"* — see §4, Question 1. **Do not claim all six.**
 >
 > **A system that refuses to answer is one you can trust when it does.**
 >
-> And AI appears in exactly **one** of the five families — a zero-shot
+> And AI appears in exactly **one** of the six families — a zero-shot
 > vision-language model. Not because it's fashionable, but because **no labelled
 > Indian watershed photograph corpus exists.** We checked ten sources. I'll come
 > back to that."
@@ -488,12 +492,13 @@ Read these twice. **The honest answer is always the winning answer here.**
 >
 > **Built, tested and running:** the reconciliation engine, all six evidence
 > producers, the database schema with partitioning, the verdict API, the
-> recompute proof, and the temporal analysis screen. 458 tests, 100 per cent
-> branch coverage on the deterministic core.
+> recompute proof, the temporal analysis screen, role-based access control, the
+> append-only adjudication ledger, and the priority alert queue. 556 tests, 100
+> per cent branch coverage on the deterministic core and on the ledger.
 >
-> **Designed and scaffolded, not finished:** the photo upload pipeline,
-> role-based access control, the adjudication screen, and the Evidence Pack PDF.
-> The database tables and the contracts exist; the code doesn't yet.
+> **Not built:** the photo upload pipeline and the Evidence Pack PDF. The
+> database tables and the contracts exist; the code doesn't. I'd rather say not
+> built than scaffolded — `app/services/ingestion` is an empty package.
 >
 > **Not started:** the photo model itself, because it needs a labelled dataset
 > that doesn't exist. That's our next two weeks."
@@ -513,7 +518,7 @@ Read these twice. **The honest answer is always the winning answer here.**
 
 ### Q3. "Where's the AI? This sounds like plain GIS."
 
-> "That's a fair reading, and it's deliberate. AI is one of five evidence
+> "That's a fair reading, and it's deliberate. AI is one of six evidence
 > families, and it's the **lowest-weighted** one.
 >
 > The reason is that a government verdict has to be explainable. Terrain
@@ -622,9 +627,9 @@ Read these twice. **The honest answer is always the winning answer here.**
 
 | Don't say | Say instead |
 |---|---|
-| "It's fully working / production ready" | "The engine and evidence layer are built and tested; the upload and reporting layers are scaffolded." |
+| "It's fully working / production ready" | "The engine, evidence layer, access control, ledger and alert queue are built and tested; the upload and reporting layers are not built." |
 | "Accuracy is 95 %" or any invented figure | "Not measured yet — here's what we did measure." |
-| "The AI detects check dams" | "One of five evidence families uses a vision model, weighted lowest." |
+| "The AI detects check dams" | "One of six evidence families uses a vision model, weighted lowest." |
 | "It proves the structure works" | "It reports whether the evidence is consistent with it working, with confidence." |
 | "confidence 0.84" (the old Slide 9 number) | The real numbers in §0.1. |
 | "The check dam caused the improvement" | "Associated with. We cap below causal claims." |
