@@ -1,5 +1,15 @@
 name: ci
 
+# Lives at the repository root, not under `pramaan/`.
+#
+# GitHub only executes workflows found in the ROOT `.github/workflows/`. These
+# files sat at `pramaan/.github/workflows/` — correct if `pramaan/` were the
+# repository, which it is not — so `gh api .../actions/workflows` reported
+# `total_count: 0` and nothing had ever run. A repository whose own README says
+# "nobody merges to main without the golden-case suite passing" needs the suite
+# to actually run, so the paths below are prefixed rather than the files being
+# left where they read well.
+
 on:
   push:
     branches: [main]
@@ -15,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: backend
+        working-directory: pramaan/backend
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
@@ -96,7 +106,7 @@ jobs:
           enable-cache: true
 
       - name: Apply every migration from scratch
-        working-directory: db
+        working-directory: pramaan/db
         env:
           DATABASE_URL: postgresql+psycopg://postgres:t@127.0.0.1:5432/t
         run: uv run --with 'psycopg[binary]' --with alembic alembic upgrade head
@@ -105,7 +115,7 @@ jobs:
       # works forwards is not reversible, and an irreversible migration cannot
       # be shipped to a district deployment.
       - name: Migrations are reversible
-        working-directory: db
+        working-directory: pramaan/db
         env:
           DATABASE_URL: postgresql+psycopg://postgres:t@127.0.0.1:5432/t
         run: |
@@ -116,7 +126,7 @@ jobs:
       # ledger's write path is reachable, so this is the only job that can gate
       # `app.services.audit` at 100% honestly.
       - name: Full suite + ledger coverage gate through real PostGIS
-        working-directory: backend
+        working-directory: pramaan/backend
         env:
           PRAMAAN_TEST_DSN: host=127.0.0.1 port=5432 user=postgres password=t dbname=t
         run: >
@@ -131,7 +141,7 @@ jobs:
       # script that does it has to keep working — it was previously wired into
       # neither CI nor the Makefile, which is how such a script quietly rots.
       - name: The ledger chain verifier still runs
-        working-directory: backend
+        working-directory: pramaan/backend
         env:
           DATABASE_URL: postgresql+psycopg://postgres:t@127.0.0.1:5432/t
         run: uv run --with 'psycopg[binary]' python ../scripts/verify_ledger_chain.py
@@ -143,7 +153,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: frontend
+        working-directory: pramaan/frontend
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -153,6 +163,13 @@ jobs:
       - run: npx tsc -b --noEmit
       - run: npm run build
 
+      # In `make check` but missing from CI: it asserts every `var(--token)`
+      # reference in the stylesheets resolves to a defined custom property. A
+      # dangling token is invisible in review and renders as an unstyled element.
+      - name: CSS custom properties all resolve
+        working-directory: pramaan
+        run: python3 scripts/lint_css_tokens.py
+
   vocabulary-lint:
     # W6 fix (docs §37): the system must never emit accusatory language.
     # Enforced as a CI rule, not a style guideline.
@@ -161,6 +178,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
       - run: uv run --with pyyaml python scripts/vocabulary_lint.py
+        working-directory: pramaan
 
   endpoints:
     # Non-blocking by design: a government endpoint being down is a finding to
@@ -171,3 +189,4 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
       - run: uv run --with httpx python scripts/verify_endpoints.py
+        working-directory: pramaan
