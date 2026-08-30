@@ -1533,3 +1533,74 @@ dl.formula dd {
   font-size: var(--t-micro);
   color: var(--ink-2);
 }
+
+/* --- per-claim tabs ---------------------------------------------------- */
+
+/* Navigation within one structure. A hairline strip, not a card: it is a header
+ * for the content below it, and a bordered panel would read as a fifth sibling
+ * of the four views it introduces. */
+.claim-nav {
+  border-bottom: 1px solid var(--rule);
+  margin: 0 0 var(--s4);
+  padding: 0 0 var(--s2);
+}
+
+.claim-nav-id {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
+  flex-wrap: wrap;
+  margin-bottom: var(--s2);
+}
+
+.claim-nav-id strong {
+  font-size: var(--t-h2);
+  font-weight: 600;
+}
+
+.claim-nav-id .sub {
+  text-transform: capitalize;
+}
+
+.claim-tabs ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Reuses the rail's own link treatment so a tab and a nav item read as the same
+ * kind of control, then overrides only what a horizontal strip needs. The
+ * active marker moves from the left edge to the bottom, because that is the
+ * edge a horizontal tab shares with its content. */
+.claim-tabs a,
+.claim-tabs .rail-btn {
+  display: inline-block;
+  width: auto;
+  padding: 5px 10px;
+  min-height: 0;
+  border-radius: var(--radius-sm);
+  color: var(--ink-2);
+  font-size: var(--t-small);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.claim-tabs a:hover,
+.claim-tabs .rail-btn:hover:not(:disabled) {
+  background: var(--paper-2);
+  color: var(--ink);
+}
+
+.claim-tabs a.on {
+  background: var(--accent-soft);
+  color: var(--ink);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+.claim-tabs .rail-btn:disabled {
+  color: var(--ink-3);
+  cursor: default;
+}

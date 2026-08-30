@@ -7,6 +7,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { AdjudicationPanel } from "./components/AdjudicationPanel";
+import { ClaimTabs } from "./components/ClaimTabs";
 import { MethodDrawer } from "./components/MethodDrawer";
 import { TemporalControlChart } from "./components/charts/TemporalControlChart";
 import {
@@ -210,9 +211,20 @@ function Console({ session }: { session: Session }) {
     };
   }, [id]);
 
-  const open = useCallback((claimId: number) => {
-    location.hash = `#/claim/${claimId}`;
-  }, []);
+  // Where opening a row lands depends on what the reader is asking. A field
+  // member clicking their own submission wants to know what happened to it, so
+  // they land on the lifecycle tracker; a monitoring officer clicking a register
+  // row is starting an assessment, so they land on the evidence. Both can reach
+  // the other view from the claim's own tabs — this only decides the first
+  // screen, and getting it wrong makes every reader navigate once before they
+  // can start.
+  const open = useCallback(
+    (claimId: number) => {
+      location.hash =
+        session.workspace === "field" ? `#/submission/${claimId}` : `#/claim/${claimId}`;
+    },
+    [session.workspace],
+  );
 
   const claim = rows?.find((r) => r.claim_id === id) ?? null;
 
@@ -225,6 +237,22 @@ function Console({ session }: { session: Session }) {
           <p className="error-inline">
             <strong>Could not reach the API.</strong> {error}
           </p>
+        )}
+
+        {/* One header for every view of one structure. Rendered here rather than
+            inside each screen so all four cannot drift apart, and so the
+            structure's identity is on screen before its analysis is — the old
+            rail never showed which claim was being displayed. */}
+        {"id" in route && (
+          <ClaimTabs
+            claimId={route.id}
+            uniqueId={rows?.find((r) => r.claim_id === route.id)?.unique_id ?? null}
+            interventionType={
+              rows?.find((r) => r.claim_id === route.id)?.intervention_type ?? null
+            }
+            active={route.name}
+            workspace={session.workspace}
+          />
         )}
 
         {route.name === "register" &&
@@ -379,10 +407,6 @@ function Rail({
   }, []);
 
   const on = (name: string) => (route.name === name ? "on" : "");
-  // Reconciliation, plan view and temporal analysis are per-claim screens, so
-  // the rail carries whichever claim is open. Falling back to 1 keeps the links
-  // live before a claim has been picked rather than rendering dead entries.
-  const currentId = "id" in route ? route.id : 1;
 
   const links: Array<{ name: string; href: string; text: string }> = [];
 
@@ -411,17 +435,19 @@ function Rail({
   }
 
   // A field account cannot dispatch a verification team, so a dispatch queue in
-  // their rail would be a control they can look at and never use.
+  // their rail would be a control they can look at and never use. Analytics is
+  // district-wide and is likewise not their question.
   if (session.workspace !== "field") {
     links.push({ name: "verifications", href: "#/verifications", text: "Verifications" });
     links.push({ name: "analytics", href: "#/analytics", text: "Analytics" });
   }
 
-  links.push(
-    { name: "claim", href: `#/claim/${String(currentId)}`, text: "Reconciliation" },
-    { name: "map", href: `#/map/${String(currentId)}`, text: "Plan view" },
-    { name: "temporal", href: `#/temporal/${String(currentId)}`, text: "Temporal analysis" },
-  );
+  // Reconciliation, plan view and temporal analysis are deliberately NOT here.
+  // They are views of one structure, not screens of the application, and the
+  // rail has no structure in hand: it used to build `#/claim/${id}` from
+  // `"id" in route ? route.id : 1`, so from the register those entries pointed
+  // at claim 1 and offered one arbitrary record's map as though it were a
+  // global view. They now live in `ClaimTabs`, inside the record they describe.
 
   return (
     <nav className="rail" aria-label="Main">

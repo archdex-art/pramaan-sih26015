@@ -32,18 +32,16 @@ import { can } from "../lib/auth";
 
 interface Props {
   rows: RegisterRow[];
-  /** Accepted but unused: navigation here is a hash assignment, like every
-   *  other route change in this app, so the row target is stated in one place
-   *  instead of being decided by whatever the parent happened to pass. Optional
-   *  so the prop can be dropped from the call site without breaking this
-   *  file. */
-  onOpen?: (claimId: number) => void;
+  /** Where a row goes. Required, and supplied by `App`, because the router and
+   *  the workspace rule both live there.
+   *
+   *  This screen previously owned the target itself and wrote
+   *  `#/submissions/{id}` — plural. The router parses `submission`, singular, so
+   *  every row click fell through to the landing screen and re-rendered this
+   *  same list. A screen that knows a route name is a second copy of the
+   *  routing table, and the copy drifted the moment the route was added. */
+  onOpen: (claimId: number) => void;
 }
-
-/** Where a row goes. Not a prop: the target is a property of this screen. */
-const openSubmission = (claimId: number) => {
-  location.hash = `#/submissions/${String(claimId)}`;
-};
 
 /** The sentence a field member actually needs, derived from stored fields only.
  *
@@ -80,7 +78,7 @@ function nextStep(row: RegisterRow): string {
   return parts.join(" ");
 }
 
-export function Submissions({ rows }: Props) {
+export function Submissions({ rows, onOpen }: Props) {
   const mayCapture = can("claim:create");
 
   const counts = useMemo(() => {
@@ -181,8 +179,8 @@ export function Submissions({ rows }: Props) {
             {shown.map((r) => (
               <tr
                 key={r.claim_id}
-                onClick={() => openSubmission(r.claim_id)}
-                onKeyDown={(e) => e.key === "Enter" && openSubmission(r.claim_id)}
+                onClick={() => onOpen(r.claim_id)}
+                onKeyDown={(e) => e.key === "Enter" && onOpen(r.claim_id)}
                 tabIndex={0}
                 role="button"
                 aria-label={`Open ${r.unique_id}`}

@@ -38,7 +38,10 @@ export function Ledger() {
   return (
     <section className="ledger">
       <header className="ledger-header">
-        <h2>Adjudication ledger</h2>
+        {/* `h1`, matching every other screen. This was an `h2` with no `h1`
+            above it, so the ledger was the one route where a screen reader's
+            heading outline started at level two and the document had no title. */}
+        <h1>Adjudication ledger</h1>
         <span
           className={`ledger-badge mono ${report.valid ? "ledger-valid" : "ledger-broken"}`}
         >
