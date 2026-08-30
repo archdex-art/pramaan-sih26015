@@ -2,6 +2,12 @@
 name = "pramaan-backend"
 version = "0.1.0"
 description = "PRAMAAN — evidence reconciliation engine and API"
+# The floor and ceiling are a range; `.python-version` beside this file pins the
+# exact interpreter. Both are needed: the range says what the code supports, the
+# pin says what the toolchain uses. Without the pin `uv` picked 3.12 on a clean
+# machine while `[tool.mypy] python_version` said 3.11 and the Dockerfile shipped
+# `python:3.11-slim`, so numpy's stubs used syntax mypy was told to reject — a
+# failure that could only appear away from a developer's existing venv.
 requires-python = ">=3.11,<3.13"
 dependencies = [
     "fastapi>=0.115",
