@@ -14,13 +14,14 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.0.1
       - run: uv run --with httpx python scripts/verify_endpoints.py --write-docs
+        working-directory: pramaan
       - name: Commit regenerated data-sources log
         run: |
           git config user.name  "pramaan-ci"
           git config user.email "ci@pramaan.invalid"
-          git add docs/09-data-sources.md docs/09-data-sources.log.json
+          git add pramaan/docs/09-data-sources.md pramaan/docs/09-data-sources.log.json
           git diff --staged --quiet || git commit -m "chore(docs): weekly endpoint verification"
           git push
