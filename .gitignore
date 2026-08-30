@@ -1,1 +1,6 @@
 .DS_Store
+
+# Reference video dropped in the workspace root: a 130 MB binary and not a
+# build input. The deliberate demo films under pramaan/docs/video/ stay tracked,
+# so this is anchored rather than a blanket *.mp4.
+/sih.mp4

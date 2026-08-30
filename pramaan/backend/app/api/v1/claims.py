@@ -79,7 +79,14 @@ SELECT DISTINCT ON (c.id)
        v.lineage -> 'provenance'     AS provenance_note,
        (SELECT count(*) FROM evidence e
          WHERE e.claim_id = c.id AND e.available) AS families_available,
-       (SELECT count(*) FROM evidence e WHERE e.claim_id = c.id) AS families_total
+       (SELECT count(*) FROM evidence e WHERE e.claim_id = c.id) AS families_total,
+       -- A claim with an uploaded photograph was filed by a field officer, so it
+       -- is real data whether or not a verdict exists for it yet. Without this
+       -- the lineage rule below defaults a freshly captured claim to `golden`
+       -- and tells the officer who just filed it that their own photograph is
+       -- synthetic test data.
+       EXISTS (SELECT 1 FROM field_images fi WHERE fi.intervention_id = i.id)
+         AS field_captured
 FROM claims c
 JOIN interventions i ON i.id = c.intervention_id
 LEFT JOIN verdicts v ON v.claim_id = c.id
@@ -168,13 +175,24 @@ def _direction(agreement: float | None, available: bool) -> str:
     return "neutral"
 
 
-def _provenance(note: Any) -> Provenance:
-    """`golden` unless the verdict's lineage names a real data source.
+def _provenance(note: Any, *, field_captured: bool = False) -> Provenance:
+    """`golden` unless this row is demonstrably real data.
 
-    Defaults to `golden`, deliberately. If provenance cannot be established the
-    safe answer is the one that under-claims: a synthetic row mislabelled as
-    measured is a far worse failure than the reverse.
+    Two independent ways to be real, because they are two different facts:
+
+    - **`field_captured`** — a photograph was uploaded against this
+      intervention. The claim came from a person at a location, so it is not a
+      fixture, and this holds before any verdict exists.
+    - **The verdict's lineage names a real source** — the assessment consumed
+      actual HLS granules rather than a synthetic bundle.
+
+    Defaulting to `golden` when neither holds is deliberate: a synthetic row
+    mislabelled as measured is a far worse failure than the reverse. But the
+    default must not swallow a real capture, which it did while the only test
+    was the lineage of a verdict that had not been computed yet.
     """
+    if field_captured:
+        return "measured"
     if isinstance(note, str) and "HLS" in note:
         return "measured"
     return "golden"
@@ -198,7 +216,7 @@ def list_claims(
 
     out: list[RegisterRow] = []
     for row in rows:
-        prov = _provenance(row["provenance_note"])
+        prov = _provenance(row["provenance_note"], field_captured=bool(row["field_captured"]))
         lvl = row["level"]
         out.append(
             RegisterRow(

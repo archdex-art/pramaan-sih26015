@@ -268,6 +268,13 @@
     figure { padding: 22px 16px 20px; }
     .key { padding: 24px 20px; }
   }
+
+  /* Print target: 16 x 14 in, matching the released PRAMAAN_Architecture.pdf.
+     Rendered with: chrome --headless --print-to-pdf. */
+  @media print {
+    @page { size: 16in 14in; margin: 0; }
+    body { background: #FFFFFF; }
+  }
 </style>
 
 <div class="wrap">
@@ -509,7 +516,7 @@
 
     <div class="fig-scroll">
       <svg viewBox="0 0 1440 660" role="img"
-           aria-label="The reconciliation mechanism. A geo-coded claim fans out to five independent evidence families: photo, terrain, satellite, temporal with matched controls, and context. A detectability gate sits on the satellite and temporal paths; when the claimed structure's footprint is smaller than one 900 square metre pixel the gate fails, per-structure satellite evidence is disabled and the claim is escalated to a cluster claim. Each family contributes a signed agreement at a fixed weight, with photo weighted lowest at 0.15 because it is the claim's own source. The weighted aggregate produces a score, confidence, coverage and data sufficiency, and an epistemic level from L0 to L4 — inconclusive is the default and causal level 5 is unreachable. The resulting verdict is provisional and carries a mandatory dissent panel, until a named officer accepts, edits or rejects it into an append-only hash-chained ledger whose corrections become the next model's training data.">
+           aria-label="The reconciliation mechanism. A geo-coded claim fans out to six evidence families — terrain 0.25, satellite 0.20, temporal 0.20, matched controls 0.15, photo 0.12 and context 0.08. Five of the six are independent of the claim; the photograph is the claim's own source, so it is weighted lowest. A detectability gate sits on the satellite and temporal paths; when the claimed structure's footprint is smaller than one 900 square metre pixel the gate fails, per-structure satellite evidence is disabled and the claim is escalated to a cluster claim. The weighted aggregate produces a score, confidence, coverage and data sufficiency, and an epistemic level from L0 to L4 — inconclusive is the default and causal level 5 is unreachable. The resulting verdict is provisional and carries a mandatory dissent panel, until a named officer accepts, edits or rejects it into an append-only hash-chained ledger whose corrections become the next model's training data.">
 
         <defs>
           <marker id="f2a" viewBox="0 0 10 8" refX="9.2" refY="4" markerWidth="7.5" markerHeight="6.5" orient="auto-start-reverse">
@@ -524,7 +531,7 @@
         </defs>
 
         <text class="s-lane" x="32"   y="30">CLAIM</text>
-        <text class="s-lane" x="470"  y="30">FIVE INDEPENDENT EVIDENCE FAMILIES</text>
+        <text class="s-lane" x="470"  y="30">SIX EVIDENCE FAMILIES</text>
         <text class="s-lane" x="830"  y="30">AGGREGATION</text>
         <text class="s-lane" x="1140" y="30">HUMAN ADJUDICATION</text>
         <line class="rule" x1="32" y1="42" x2="1408" y2="42"/>
@@ -593,11 +600,12 @@
         <polyline class="edge" points="770,369 790,369 790,315 826,315" marker-end="url(#f2a)"/>
         <polyline class="edge" points="770,468 802,468 802,335 826,335" marker-end="url(#f2a)"/>
 
-        <text class="s-edge" x="774" y="80">0.15</text>
+        <text class="s-edge" x="774" y="80">0.12</text>
         <text class="s-edge" x="774" y="170">0.25</text>
-        <text class="s-edge" x="774" y="260">0.25</text>
-        <text class="s-edge" x="774" y="390">0.25</text>
-        <text class="s-edge" x="774" y="488">0.10</text>
+        <text class="s-edge" x="774" y="260">0.20</text>
+        <text class="s-edge" x="774" y="382">0.20</text>
+        <text class="s-edge" x="774" y="400">0.15</text>
+        <text class="s-edge" x="774" y="488">0.08</text>
 
         <!-- ============ AGGREGATE ============ -->
         <rect x="830" y="220" width="240" height="170" rx="3"
@@ -646,11 +654,11 @@
         <text class="s-note" x="1140" y="614">model’s training data.</text>
 
         <line class="rule" x1="32" y1="644" x2="1408" y2="644"/>
-        <text class="s-note" x="32" y="634">Three of the five families contain no machine learning at all — terrain, satellite indices and temporal statistics are deterministic.</text>
+        <text class="s-note" x="32" y="634">Three of the six families contain no machine learning at all — terrain, satellite indices and temporal statistics are deterministic.</text>
       </svg>
     </div>
 
-    <figcaption><strong>The gate is the mechanism worth staring at.</strong> Before any satellite evidence is computed, the claimed structure’s expected footprint is measured against the 900 m² area of a single 30 m pixel. A 25 × 25 m farm pond fails, and the amber path collapses: per-structure satellite evidence is switched off and the claim is escalated to a cluster assessment — visibly, in the interface and in the generated PDF. <strong>That one deterministic branch is what stops the system from reporting a confident absence for something it was never able to see</strong>, and it is precisely why a negative verdict from the families that survive can be trusted. Note also what the fan-in encodes: the photograph is the claim’s own source, so it is weighted lowest of the five. Terrain, satellite and temporal evidence are each produced without reference to the photograph, which is what makes their agreement informative — and what lets the system keep working at a lower ceiling when any single family is unavailable.</figcaption>
+    <figcaption><strong>The gate is the mechanism worth staring at.</strong> Before any satellite evidence is computed, the claimed structure’s expected footprint is measured against the 900 m² area of a single 30 m pixel. A 25 × 25 m farm pond fails, and the amber path collapses: per-structure satellite evidence is switched off and the claim is escalated to a cluster assessment — visibly, in the interface and in the generated PDF. <strong>That one deterministic branch is what stops the system from reporting a confident absence for something it was never able to see</strong>, and it is precisely why a negative verdict from the families that survive can be trusted. Note also what the fan-in encodes: the photograph is the claim’s own source, so it is weighted lowest of the six — the five independent families carry 0.88 against its 0.12. Terrain, satellite and temporal evidence are each produced without reference to the photograph, which is what makes their agreement informative — and what lets the system keep working at a lower ceiling when any single family is unavailable.</figcaption>
   </figure>
 
   <!-- ===================== KEY ===================== -->

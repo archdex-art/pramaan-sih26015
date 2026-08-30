@@ -25,6 +25,13 @@ dependencies = [
     "pyproj>=3.6",
     "geopandas>=1.0",
     "weasyprint>=62.0",
+    # MinIO is S3-compatible, so the standard S3 client is the boring choice and
+    # the one a deployment can repoint at any object store. `boto3-stubs` is a
+    # runtime dependency rather than a dev one because
+    # `app/services/ingestion/store.py` imports the S3Client type under
+    # TYPE_CHECKING and `mypy --strict` runs over `app/api`, which reaches it.
+    "boto3>=1.35",
+    "boto3-stubs[s3]>=1.35",
 ]
 
 [dependency-groups]

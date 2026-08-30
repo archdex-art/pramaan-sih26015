@@ -1344,6 +1344,86 @@ dl.formula dd {
   padding: 1px 4px;
 }
 
+/* The chain verification result, on one baseline with its label. Reuses the
+ * ledger badge classes so the same computed check reads identically wherever it
+ * appears — two spellings of "the chain verifies" would invite the reader to
+ * wonder which one is authoritative. */
+.admin-chain {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  margin: var(--s4) 0 0;
+}
+
+/* What a source is for, under its name. Secondary because the operator scans
+ * the status column first and reads the purpose only when a status surprises
+ * them. */
+.admin-source-purpose {
+  display: block;
+  font-size: var(--t-small);
+  color: var(--ink-3);
+}
+
+/* --- workspace screens (submissions, verifications) ---------------------- */
+
+/* `.panel` carries no padding of its own: most panels supply their own inset
+ * (`.panel.action`, `.panel.dissent`, `.col`) and the table panels deliberately
+ * let the table reach the hairline. The count strips and prose panels on the
+ * workspace screens are the remaining case, so they share one inset instead of
+ * each screen inventing its own. */
+.strip-panel {
+  padding: var(--s4);
+}
+
+.strip-panel h2,
+.strip-panel h3 {
+  margin: 0 0 var(--s2);
+}
+
+.strip-panel h3 {
+  margin-top: var(--s5);
+}
+
+/* A counted summary. Not `dl.metrics`, which is locked to four columns because a
+ * verdict has exactly four figures: a queue header has as many cells as the
+ * engine has alert bands plus two totals, and the fifth cell orphaned onto its
+ * own row read as a second, separate section. Auto-fit, same gap, same tokens. */
+.strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  gap: var(--s4);
+  margin: var(--s3) 0 0;
+}
+
+.strip > div {
+  display: grid;
+  gap: 3px;
+  align-content: start;
+}
+
+/* Prose in a table cell: the alert reason, the "what happens next" sentence, the
+ * list of missing DEM tiles. Given a measure they wrap into something readable;
+ * without one a long sentence forces a single line and pushes every other
+ * column off the screen. Never truncated — the reason is the only part of a
+ * verification row that is an argument. */
+.reason-cell {
+  min-width: 30ch;
+  max-width: 46ch;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+/* A signed record, beside the `provisional` chip it replaces. Deliberately
+ * uncoloured: green in this interface means L2-L4 on the epistemic ladder and
+ * nothing else, so a signed state is stated in words at chip weight instead. */
+.state-signed {
+  font-size: var(--t-micro);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
 /* --- workspace badge ----------------------------------------------------- */
 
 /* Names the officer's mode. Bordered rather than filled: the epistemic ladder

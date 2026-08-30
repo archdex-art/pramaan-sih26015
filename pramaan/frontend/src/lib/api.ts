@@ -112,7 +112,11 @@ export class ApiError extends Error {
   }
 }
 
-async function get<T>(path: string): Promise<T> {
+/** Exported so a screen can own its own response types without every new
+ *  endpoint having to widen this module. The auth-retry and error-shaping
+ *  behaviour must stay in exactly one place, which is why the helper is
+ *  shared rather than the pattern being copied. */
+export async function get<T>(path: string): Promise<T> {
   // Auth-aware fetch that injects the access token and retries once on 401.
   const response = await authFetch(path);
   if (!response.ok) {
@@ -297,7 +301,7 @@ export interface LedgerEntry {
   row_hash: string;
 }
 
-async function post<T>(path: string, body: unknown): Promise<T> {
+export async function post<T>(path: string, body: unknown): Promise<T> {
   const response = await authFetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -325,3 +329,134 @@ export const fetchChainReport = (): Promise<ChainReport> =>
 
 export const fetchLedger = (): Promise<LedgerEntry[]> =>
   get("/api/v1/ledger");
+
+// --- verification queue (FR-10) -------------------------------------------
+
+/** One entry of the ranked verification queue, mirroring `AlertOut` in
+ *  `app/api/v1/alerts.py` field for field.
+ *
+ *  `level` and `label` arrive as plain strings on the wire but are produced by
+ *  the engine's own `Level` enum and `label_for`, so they are typed to the same
+ *  unions the register uses. Typing them as `string` would let a screen render
+ *  a chip with no ladder colour and never be told. */
+export interface Alert {
+  claim_id: number;
+  verdict_id: number;
+  unique_id: string;
+  intervention_type: string;
+  district_lgd: string;
+  level: Level;
+  label: Label;
+  confidence: number;
+  data_sufficiency: number;
+  /** 1 is the most urgent. Computed by `services/alerts/priority.rank`. */
+  priority: number;
+  reason: string;
+  recommended_action: string;
+  adjudicated: boolean;
+}
+
+export interface AlertSummary {
+  /** Carries every alert level the engine knows, *including* the zeroes. A
+   *  missing key would be indistinguishable from a band that does not exist. */
+  by_level: Record<string, number>;
+  total: number;
+  unadjudicated: number;
+  /** `null`, not an empty string and not a reassuring sentence, when the queue
+   *  is empty. The screen decides how to say "nothing is queued". */
+  highest_priority_reason: string | null;
+}
+
+export const fetchAlerts = (limit = 100): Promise<Alert[]> =>
+  get(`/api/v1/alerts?limit=${String(limit)}`);
+
+export const fetchAlertSummary = (): Promise<AlertSummary> =>
+  get("/api/v1/alerts/summary");
+
+// --- administration -------------------------------------------------------
+
+/** Mirrors `UserOut`. The scope fields are mutually exclusive in practice —
+ *  a district officer has `scope_district`, a state officer `scope_state`, and
+ *  a national officer neither — but the API reports both rather than a single
+ *  pre-formatted string, so the UI can say "national" in its own words. */
+export interface AdminUser {
+  username: string;
+  full_name: string;
+  role: string;
+  workspace: string;
+  scope_state: string | null;
+  scope_district: string | null;
+  is_active: boolean;
+  last_login_at: string | null;
+  failed_attempts: number;
+  locked_until: string | null;
+}
+
+/** DEM readiness for one district. `missing_tiles` is the field that matters:
+ *  a district whose DEM does not cover its claims cannot produce terrain
+ *  evidence, and that must be visible rather than inferred from a low
+ *  coverage number. */
+export interface DemStatus {
+  derivatives_present: boolean;
+  derivatives: string[];
+  tiles: string[];
+  missing_tiles: string[];
+  covers_claim_extent: boolean;
+}
+
+export interface AdminDistrict {
+  district_lgd: string;
+  claim_count: number;
+  verdict_count: number;
+  adjudicated_count: number;
+  intervention_types: string[];
+  dem: DemStatus;
+}
+
+/** One subsystem table and whether anything has been written to it. `populated`
+ *  is the engine's own answer, not `row_count > 0` re-derived here. */
+export interface TableCount {
+  table: string;
+  row_count: number;
+  populated: boolean;
+}
+
+export interface AdminSystem {
+  engine_version: string;
+  offline_mode: boolean;
+  claims: number;
+  verdicts: number;
+  adjudications: number;
+  users: number;
+  ledger_rows: number;
+  /** Result of re-hashing the adjudication chain, computed on this request. */
+  ledger_valid: boolean;
+  subsystems: TableCount[];
+}
+
+/** A recorded external-source verification, not a live probe. `status` is the
+ *  string the check recorded — `SKIPPED_NO_CREDENTIALS` is a real outcome and
+ *  is displayed as such. */
+export interface DataSource {
+  key: string;
+  name: string;
+  purpose: string;
+  url: string;
+  licence: string;
+  status: string;
+  detail: string;
+  elapsed_ms: number | null;
+  checked_at: string | null;
+}
+
+export const fetchAdminUsers = (): Promise<AdminUser[]> =>
+  get("/api/v1/admin/users");
+
+export const fetchAdminDistricts = (): Promise<AdminDistrict[]> =>
+  get("/api/v1/admin/districts");
+
+export const fetchAdminSystem = (): Promise<AdminSystem> =>
+  get("/api/v1/admin/system");
+
+export const fetchDataSources = (): Promise<DataSource[]> =>
+  get("/api/v1/admin/data-sources");

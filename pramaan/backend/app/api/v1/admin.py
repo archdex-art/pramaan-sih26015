@@ -1,8 +1,9 @@
 """The administration console (design doc S13) — an honesty surface.
 
-Three reads, no writes, and every number on them comes from the running system:
-a `SELECT` against the live database, a `stat` against the live filesystem, or a
-constant the engine itself imports. Nothing here is computed for effect.
+Four reads, no writes, and every number on them comes from the running system or
+from a committed record of a measurement actually taken: a `SELECT` against the
+live database, a `stat` against the live filesystem, a constant the engine itself
+imports, or the verification log in `docs/`. Nothing here is computed for effect.
 
 ## Why this screen reports emptiness
 
@@ -21,10 +22,10 @@ make the deployment look wider than it is.
 ## Gating
 
 Every route requires the capability that names what it exposes —
-`user:manage` for the account list, `district:manage` for the district roster,
-and both for the system summary, which mixes the two. In this build's
-`CAPABILITIES` map only `dolr_admin` holds either, so all three routes resolve
-to "administrator only".
+`user:manage` for the account list, `district:manage` for the district roster
+and for the external-source log, and both for the system summary, which mixes
+the two. In this build's `CAPABILITIES` map only `dolr_admin` holds either, so
+all four routes resolve to "administrator only".
 
 `ledger:verify` was considered and rejected: `wcdc`, `slna` and `readonly` also
 hold it, and a district officer being able to enumerate every account in the
@@ -40,9 +41,11 @@ open the administration console to it, and this guard would still refuse.
 
 from __future__ import annotations
 
+import json
 import math
 import re
 from datetime import datetime
+from functools import lru_cache
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -398,3 +401,74 @@ def get_system(session: DbSession) -> SystemOut:
             for row in session.execute(_SUBSYSTEM_COUNTS).mappings()
         ],
     )
+
+
+# --- External data sources -------------------------------------------------
+
+#: The committed output of the endpoint-verification pass (docs §9). Resolved
+#: from this file upwards, exactly as `DEM_DIR` above and `mapview.LAYERS` are,
+#: because the API's working directory is `/app` in the container and `docs/`
+#: sits outside it.
+DATA_SOURCES_LOG = Path(__file__).resolve().parents[3].parent / "docs" / "09-data-sources.log.json"
+
+
+class DataSourceOut(BaseModel):
+    """One recorded probe of one external source.
+
+    `elapsed_ms` and `checked_at` are optional because a source that was never
+    contacted has no measurement to report. Modelling them as required would
+    force a zero or a fabricated timestamp into a file whose only value is that
+    every field in it was actually observed.
+    """
+
+    key: str
+    name: str
+    purpose: str
+    url: str
+    licence: str
+    #: Verbatim from the log — `OK`, `SKIPPED_NO_CREDENTIALS`, or whatever the
+    #: next pass records. Deliberately `str` and not an enum: an enum here would
+    #: mean a newly recorded failure mode crashes the console that exists to
+    #: report failures, and a narrower type cannot make an unreachable source
+    #: reachable.
+    status: str
+    detail: str
+    elapsed_ms: int | None
+    checked_at: str | None
+
+
+@lru_cache(maxsize=1)
+def _load_data_sources() -> tuple[DataSourceOut, ...]:
+    """Parse the log once. It is a committed artefact; it cannot change per request.
+
+    Absent file returns empty rather than raising. `backend/Dockerfile` copies
+    only `app/`, so in a container image this path genuinely does not exist, and
+    a 500 on the administration console because a documentation file was not
+    baked into the image would be a worse failure than a screen that says the
+    verification log is not present. The endpoint's own response carries that
+    distinction: an empty list means "no recorded pass here", which is true.
+    """
+    if not DATA_SOURCES_LOG.is_file():
+        return ()
+    entries = json.loads(DATA_SOURCES_LOG.read_text(encoding="utf-8"))
+    return tuple(DataSourceOut.model_validate(entry) for entry in entries)
+
+
+@router.get(
+    "/admin/data-sources",
+    response_model=list[DataSourceOut],
+    dependencies=[Depends(require(Capability.DISTRICT_MANAGE)), Depends(administration_only)],
+)
+def get_data_sources() -> list[DataSourceOut]:
+    """The recorded result of the last endpoint-verification pass.
+
+    This route performs no network I/O. It replays `docs/09-data-sources.log.json`
+    — measurements taken once, by hand, and committed — and it neither re-probes
+    nor normalises them. Live probing from an administration screen would be a
+    different feature with a different failure mode: it would make the page's
+    load time depend on eight third-party services, and under §38 offline mode
+    it would be forbidden outright. What an administrator needs here is the
+    audit question "what did we actually verify, and when", and that answer is
+    only trustworthy if it is a record rather than a fresh guess.
+    """
+    return list(_load_data_sources())

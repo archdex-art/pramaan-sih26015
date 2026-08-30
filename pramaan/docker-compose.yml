@@ -97,6 +97,18 @@ services:
     volumes:
       - ./backend/app:/app/app
       - ./data:/data
+      # The recorded endpoint-verification log, served by
+      # GET /api/v1/admin/data-sources. A volume rather than a COPY because the
+      # build context is ./backend and the Dockerfile cannot reach ../docs —
+      # the same reason `migrate` mounts ./db. Read-only: the API reports this
+      # record, it never writes it. Without this mount the admin panel renders
+      # an empty source list, which reads as "no sources configured" rather
+      # than as a missing file.
+      #
+      # Mounted at /docs, not /app/docs: in this image /app *is* backend/, so
+      # the repository root maps to / — which is why `./data:/data` above
+      # satisfies a DEM path derived the same way from __file__.
+      - ./docs:/docs:ro
       # The signing keypair must outlive the container. Without this volume a
       # restart mints a new key and silently invalidates every live session —
       # which reads to a user as "the app logged me out for no reason".

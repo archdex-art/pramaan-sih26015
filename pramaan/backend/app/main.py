@@ -4,11 +4,16 @@ from fastapi import FastAPI
 
 from app.api.v1 import (
     adjudication,
+    admin,
     alerts,
+    analytics,
+    audit,
     auth,
     claims,
+    ingest,
     mapview,
     method,
+    reports,
     temporal,
     verdicts,
 )
@@ -36,6 +41,11 @@ app.include_router(adjudication.router, prefix="/api/v1")
 app.include_router(mapview.router, prefix="/api/v1")
 app.include_router(claims.router, prefix="/api/v1")
 app.include_router(alerts.router, prefix="/api/v1")
+app.include_router(admin.router, prefix="/api/v1")
+app.include_router(analytics.router, prefix="/api/v1")
+app.include_router(audit.router, prefix="/api/v1")
+app.include_router(reports.router, prefix="/api/v1")
+app.include_router(ingest.router, prefix="/api/v1")
 
 
 @app.get("/healthz", tags=["ops"])

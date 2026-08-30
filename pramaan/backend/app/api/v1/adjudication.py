@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from app.api.deps import CurrentPrincipal, CurrentScope, DbSession, require
@@ -25,6 +25,7 @@ from app.services.audit.ledger import (
     read_chain,
     verify_chain,
 )
+from app.services.audit.trail import Action, client_ip, record
 from app.services.reconcile.types import Level
 
 router = APIRouter(tags=["adjudication"])
@@ -72,6 +73,7 @@ def post_adjudicate(
     session: DbSession,
     scope: CurrentScope,
     principal: CurrentPrincipal,
+    request: Request,
 ) -> AdjudicationOut:
     """Sign a verdict. Jurisdiction is checked before anything is written.
 
@@ -105,6 +107,32 @@ def post_adjudicate(
         )
     except LedgerError as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+
+    # After the append, never before: the ledger is the authoritative record of
+    # a signature and this is a convenience index over it. `ledger_row_id` and
+    # `row_hash` are carried so a trail entry can be resolved back to the chain
+    # link it describes — without them a reader would have to match on
+    # timestamp, which is not a key. Best-effort by construction (see
+    # `trail.record`): the signature is already committed and chained, so
+    # losing this row loses nothing that matters.
+    record(
+        session,
+        action=Action.ADJUDICATION_SIGNED,
+        user_id=principal.user_id,
+        entity="verdict",
+        entity_id=str(verdict_id),
+        payload={
+            "decision": body.decision,
+            "corrected_level": body.corrected_level,
+            "ledger_row_id": row.id,
+            "row_hash": row.row_hash,
+        },
+        # Recorded here and not for reads: a signature is the one action whose
+        # origin an investigator will ask about. `client_ip` returns NULL for
+        # anything that is not a parseable address rather than inventing one.
+        ip=client_ip(request.client.host if request.client else None),
+        user_agent=request.headers.get("user-agent"),
+    )
 
     return AdjudicationOut(
         id=row.id,
