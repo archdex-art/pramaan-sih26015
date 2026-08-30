@@ -86,6 +86,30 @@ router = APIRouter(tags=["audit"])
 # statement fails to prepare with `AmbiguousParameter` — at request time, in
 # the branch where the filter is used. The cast tells the planner what the
 # parameter is.
+#
+# `subject` resolves an entity reference to something a person can act on. The
+# raw columns are an entity name plus an opaque id — `('user', <uuid>)` for the
+# 45 authentication rows and `('verdict', '118')` for a signature — and neither
+# is readable: a UUID identifies nobody to a reader, and a verdict's serial
+# number is not the thing an officer knows. Where the event concerns an
+# assessment, the subject is therefore the *structure's* programme identifier,
+# which is what appears on the register, in the Evidence Pack and on the
+# officer's own paperwork.
+#
+# Left joins throughout: an authentication event has no verdict, a verdict may
+# predate its intervention being renamed, and a missing chain must yield NULL
+# rather than drop the audit row. Losing an event because its subject could not
+# be prettified would be the worst possible trade in an audit table.
+#
+# The verdict join casts inside a CASE, and that is not stylistic. `entity_id` is
+# TEXT holding a UUID for account events and a serial for verdict events, so the
+# cast must not be evaluated for the former. Writing the guard as
+# `ON a.entity = 'verdict' AND v.id = a.entity_id::bigint` fails: SQL does not
+# promise left-to-right evaluation of AND, and Postgres duly attempted the cast
+# on a UUID and raised `invalid input syntax for type bigint`. CASE is the one
+# construct whose evaluation order the manual guarantees, so the type test lives
+# there. The regex is belt to that braces: an entity named 'verdict' whose id is
+# not a number yields NULL rather than an error.
 _TRAIL = text("""
 SELECT a.id,
        a.at,
@@ -95,9 +119,17 @@ SELECT a.id,
        COALESCE(a.payload, '{}'::jsonb) AS payload,
        u.username,
        u.full_name,
-       u.role::text AS role
+       u.role::text AS role,
+       i.unique_id AS subject
   FROM audit_log a
   LEFT JOIN users u ON u.id = a.user_id
+  LEFT JOIN verdicts v
+         ON v.id = CASE
+                     WHEN a.entity = 'verdict' AND a.entity_id ~ '^[0-9]+$'
+                     THEN a.entity_id::bigint
+                   END
+  LEFT JOIN claims c ON c.id = v.claim_id
+  LEFT JOIN interventions i ON i.id = c.intervention_id
  WHERE (CAST(:action AS text) IS NULL OR a.action = CAST(:action AS text))
    AND (CAST(:entity AS text) IS NULL OR a.entity = CAST(:entity AS text))
  ORDER BY a.at DESC, a.id DESC
@@ -124,6 +156,10 @@ class AuditEvent(BaseModel):
     entity: str | None
     entity_id: str | None
     payload: dict[str, Any]
+    #: The structure this event concerns, by programme identifier, when the
+    #: event is about an assessment. `None` for account events, where the actor
+    #: fields above already name the subject and repeating it would be noise.
+    subject: str | None
 
 
 @router.get(
@@ -165,6 +201,7 @@ def list_audit_events(
             entity=r["entity"],
             entity_id=r["entity_id"],
             payload=dict(r["payload"]),
+            subject=r["subject"],
         )
         for r in rows
     ]

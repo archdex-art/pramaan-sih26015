@@ -15,6 +15,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
+from sqlalchemy import text
 
 from app.api.deps import CurrentPrincipal, CurrentScope, DbSession, require
 from app.api.scope import require_verdict_visible
@@ -181,6 +182,14 @@ def get_ledger_verify(session: DbSession) -> ChainOut:
 class LedgerEntryOut(BaseModel):
     id: int
     verdict_id: int
+    #: The structure this signature is about, by programme identifier. The
+    #: verdict's serial number is the database's name for the assessment; this
+    #: is the officer's name for the thing on the ground, and it is the one that
+    #: appears on the register, in the Evidence Pack and on their paperwork.
+    #: `None` only if the intervention row has gone, which the foreign keys
+    #: prevent — carried as optional rather than asserted so a signature is
+    #: never withheld because its label could not be resolved.
+    structure: str | None
     decision: str
     corrected_level: str | None
     reason: str | None
@@ -190,6 +199,20 @@ class LedgerEntryOut(BaseModel):
     row_hash: str
 
 
+#: verdict id -> the structure's programme identifier.
+#:
+#: A second small query rather than a column added to `ledger._CHAIN`: that
+#: query feeds `verify_chain`, whose digest input is fixed, and widening it to
+#: carry a display label would put presentation inside the integrity check. One
+#: lookup over the whole ledger is cheap and keeps the chain code untouched.
+_STRUCTURES = text("""
+SELECT v.id AS verdict_id, i.unique_id
+  FROM verdicts v
+  JOIN claims c ON c.id = v.claim_id
+  JOIN interventions i ON i.id = c.intervention_id
+""")
+
+
 @router.get(
     "/ledger",
     response_model=list[LedgerEntryOut],
@@ -197,10 +220,14 @@ class LedgerEntryOut(BaseModel):
 )
 def get_ledger(session: DbSession) -> list[LedgerEntryOut]:
     """The signed record, in chain order."""
+    structures = {
+        int(r["verdict_id"]): str(r["unique_id"]) for r in session.execute(_STRUCTURES).mappings()
+    }
     return [
         LedgerEntryOut(
             id=r.id,
             verdict_id=r.verdict_id,
+            structure=structures.get(r.verdict_id),
             decision=r.decision,
             corrected_level=r.corrected_level,
             reason=r.reason,

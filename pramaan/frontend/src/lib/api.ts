@@ -292,6 +292,9 @@ export interface ChainReport {
 export interface LedgerEntry {
   id: number;
   verdict_id: number;
+  /** The structure's programme identifier, resolved server-side. Nullable only
+   *  because a signature must never be withheld for want of a display label. */
+  structure: string | null;
   decision: string;
   corrected_level: string | null;
   reason: string | null;
