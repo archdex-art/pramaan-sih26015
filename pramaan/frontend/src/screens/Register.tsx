@@ -16,6 +16,7 @@
  */
 
 import { useMemo, useState } from "react";
+import { Filter } from "../components/Filter";
 import type { Level, RegisterRow } from "../lib/api";
 
 interface Props {
@@ -260,31 +261,5 @@ export function Register({ rows, onOpen }: Props) {
         synthetic row must never be mistaken for a measurement.
       </p>
     </div>
-  );
-}
-
-function Filter({
-  name,
-  value,
-  onChange,
-  options,
-}: {
-  name: string;
-  value: string;
-  onChange: (v: string) => void;
-  options: [string, string][];
-}) {
-  return (
-    <label className="filter">
-      {/* A visible label, not a placeholder — the forms checklist is explicit. */}
-      <span className="label">{name}</span>
-      <select value={value} onChange={(e) => onChange(e.target.value)}>
-        {options.map(([v, text]) => (
-          <option key={v} value={v}>
-            {text}
-          </option>
-        ))}
-      </select>
-    </label>
   );
 }

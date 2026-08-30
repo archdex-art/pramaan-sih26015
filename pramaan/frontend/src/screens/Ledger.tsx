@@ -56,12 +56,21 @@ export function Ledger() {
   if (!entries || !report) return <p className="loading">Loading ledger…</p>;
 
   return (
-    <section className="ledger">
-      <header className="ledger-header">
-        {/* `h1`, matching every other screen. This was an `h2` with no `h1`
-            above it, so the ledger was the one route where a screen reader's
-            heading outline started at level two and the document had no title. */}
-        <h1>Adjudication ledger</h1>
+    // `.screen` + `.screen-head`, the shape every other screen uses. This one
+    // was a bare `<section className="ledger">` with its own header block, so it
+    // sat at a different width with different heading spacing and read as a
+    // different application. The badge stays in the head because chain validity
+    // is the screen's headline, not a detail below it.
+    <div className="screen">
+      <header className="screen-head rise">
+        <div>
+          <h1>Adjudication ledger</h1>
+          <p className="sub">
+            Every signature in chain order. Each row is{" "}
+            <span className="mono">sha256</span> over its own content plus the
+            previous row&rsquo;s hash.
+          </p>
+        </div>
         <span
           className={`ledger-badge mono ${report.valid ? "ledger-valid" : "ledger-broken"}`}
         >
@@ -71,17 +80,20 @@ export function Ledger() {
         </span>
       </header>
 
-      <p className="ledger-statement">{report.statement}</p>
+      <p className="triage-note note">{report.statement}</p>
 
       {entries.length === 0 ? (
-        <p className="adj-note">No adjudications recorded yet.</p>
+        <p className="empty">
+          No adjudications recorded yet. Nothing here becomes government evidence
+          until a named officer signs it.
+        </p>
       ) : (
         // `.table-wrap` is the same scroll container every other table here
         // uses. Without it the table sat in a section with `overflow-x: visible`,
         // so the widest column pushed the whole document 145px past the viewport
         // and the page scrolled sideways. A table may scroll inside its own box;
         // the page may not.
-        <div className="table-wrap">
+        <div className="table-wrap panel">
           <table className="register ledger-table">
           <thead>
             <tr>
@@ -147,6 +159,6 @@ export function Ledger() {
           </table>
         </div>
       )}
-    </section>
+    </div>
   );
 }

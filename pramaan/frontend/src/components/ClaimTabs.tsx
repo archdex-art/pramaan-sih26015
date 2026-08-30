@@ -133,7 +133,7 @@ export function ClaimTabs({ claimId, uniqueId, interventionType, active, workspa
               absent rather than present-and-403. */}
           {can("verdict:read") && (
             <li>
-              <button className="rail-btn" onClick={() => void openReport()} disabled={loading}>
+              <button className="btn" onClick={() => void openReport()} disabled={loading}>
                 {loading ? "Building…" : "Evidence Pack"}
               </button>
             </li>

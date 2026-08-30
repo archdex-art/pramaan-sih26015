@@ -216,6 +216,10 @@
   gap: var(--s4);
   margin-bottom: var(--s3);
   flex-wrap: wrap;
+  /* Bottom, not stretch: a `.filter` is a column with its label above its
+     select, so a bare button beside one must align with the select rather than
+     grow to cover the label row too. */
+  align-items: flex-end;
 }
 
 .filter {
@@ -1303,9 +1307,10 @@ dl.formula dd {
 
 /* --- admin panel --------------------------------------------------------- */
 
-.admin-panel {
-  padding: var(--s5) var(--s6);
-}
+/* `.admin-panel` is a modifier on `.screen`, not a container of its own. It used
+ * to set its own padding and no max-width, so the administration console was the
+ * one screen rendered at full viewport width with `.main`'s padding applied
+ * twice. Only the panel rhythm below is genuinely admin-specific. */
 
 .admin-panel .panel {
   margin-bottom: var(--s5);
@@ -1576,7 +1581,7 @@ dl.formula dd {
  * active marker moves from the left edge to the bottom, because that is the
  * edge a horizontal tab shares with its content. */
 .claim-tabs a,
-.claim-tabs .rail-btn {
+.claim-tabs .btn {
   display: inline-block;
   width: auto;
   padding: 5px 10px;
@@ -1589,7 +1594,7 @@ dl.formula dd {
 }
 
 .claim-tabs a:hover,
-.claim-tabs .rail-btn:hover:not(:disabled) {
+.claim-tabs .btn:hover:not(:disabled) {
   background: var(--paper-2);
   color: var(--ink);
 }
@@ -1600,7 +1605,7 @@ dl.formula dd {
   box-shadow: inset 0 -2px 0 var(--accent);
 }
 
-.claim-tabs .rail-btn:disabled {
+.claim-tabs .btn:disabled {
   color: var(--ink-3);
   cursor: default;
 }

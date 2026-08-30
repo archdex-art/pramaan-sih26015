@@ -44,6 +44,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { Filter } from "../components/Filter";
 import { ApiError, get } from "../lib/api";
 
 /** One row of `audit_log`, joined to `users` for attribution and to the claim
@@ -203,28 +204,28 @@ export function AuditTrail() {
       </p>
 
       {events !== null && actions.length > 0 && (
-        <div className="panel rise">
-          <h2 className="label">Filter</h2>
-          <label className="label" htmlFor="audit-action">
-            action
-          </label>{" "}
-          <select
-            id="audit-action"
-            className="mono"
+        <div className="filters rise">
+          <Filter
+            name="Action"
             value={action}
-            onChange={(e) => setAction(e.target.value)}
-          >
-            <option value="">all ({events.length})</option>
-            {actions.map((a) => (
-              <option key={a} value={a}>
-                {a}
-              </option>
-            ))}
-          </select>{" "}
+            onChange={setAction}
+            options={[
+              ["", `All (${events.length})`],
+              // The stored token, not the humanised word: someone filtering a
+              // trail is naming an event class exactly, and the table's own
+              // Action column already carries the readable form.
+              ...actions.map((a) => [a, a] as [string, string]),
+            ]}
+          />
           {/* Opt-in rather than default. Every stored key is one click away, so
-              filtering the Detail column hides nothing from an auditor — it only
-              stops the common case from being unreadable. */}
-          <button className="rail-btn" onClick={() => setShowRaw(!showRaw)}>
+              filtering the Outcome column hides nothing from an auditor — it
+              only stops the common case from being unreadable.
+
+              `.btn`, not `.rail-btn`: the rail's button is `display: block;
+              width: 100%` because it lives in a vertical nav, and reusing it
+              here stretched the control across the panel and dropped it onto its
+              own line looking like stray prose. */}
+          <button className="btn" onClick={() => setShowRaw(!showRaw)}>
             {showRaw ? "Hide raw payload" : "Show raw payload"}
           </button>
         </div>

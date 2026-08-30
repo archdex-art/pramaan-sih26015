@@ -102,7 +102,7 @@ export function Admin({ session }: { session: Session }) {
   }, []);
 
   return (
-    <section className="admin-panel">
+    <div className="screen admin-panel">
       <header className="screen-head rise">
         <div>
           <h1>Administration</h1>
@@ -198,7 +198,7 @@ export function Admin({ session }: { session: Session }) {
             </p>
 
             <h3>Subsystem tables</h3>
-            <div className="table-wrap">
+            <div className="table-wrap panel">
               <table className="register">
                 <thead>
                   <tr>
@@ -413,7 +413,7 @@ export function Admin({ session }: { session: Session }) {
           </li>
         </ul>
       </div>
-    </section>
+    </div>
   );
 }
 
